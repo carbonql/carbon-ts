@@ -1,19 +1,25 @@
 import * as ast from './ast/ast';
 import * as client from './client/client';
+import * as bind from './client/bind';
 import * as k8s from '@kubernetes/client-node';
 import { V1Pod } from '@kubernetes/client-node';
 import { List } from 'linqts';
 import * as request from 'request';
 
-const d = client.deployment("nginx", "nginx", <k8s.V1ContainerPort>{containerPort: 80});
-console.log(JSON.stringify(d, null, "  "));
+const deplName = "nginx-deployment";
 
-const s = client.service("nginx", {app: "nginx"}, <k8s.V1ServicePort>{
-  "protocol": "TCP",
-  "port": 80,
-  "targetPort": 9376
-});
-console.log(JSON.stringify(s, null, "  "));
+const resources =
+  new List([
+    client.deployment(deplName, "nginx", <k8s.V1ContainerPort>{containerPort: 80})
+  ])
+  .SelectMany(bind.Deployment.expose(deplName, 80));
+
+// const s = client.service("nginx", {app: "nginx"}, <k8s.V1ServicePort>{
+//   "protocol": "TCP",
+//   "port": 80,
+//   "targetPort": 9376
+// });
+// console.log(JSON.stringify(s, null, "  "));
 
 // const f = x => { "bar"; return "baz"; };
 // const node = ast.parse(f.toString());

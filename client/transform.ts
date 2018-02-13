@@ -1,4 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
+import { DeploymentTypes } from './types';
 import { labeledStatement } from 'babel-types';
 
 namespace Hidden {
@@ -35,11 +36,6 @@ namespace Hidden {
 }
 
 export namespace Deployment {
-  export type DeploymentTypes =
-      k8s.AppsV1beta1Deployment
-    | k8s.ExtensionsV1beta1Deployment
-    | k8s.V1beta2Deployment;
-
   export type Transform = <D extends DeploymentTypes>(d: D) => void;
 
   export const applyTransformations = (...transforms: Transform[]): Transform => {
@@ -51,33 +47,23 @@ export namespace Deployment {
   }
 
   export const setName = (name: string): Transform => {
-    return d => {
-      Hidden.V1.Metadata.setName(name)(d.metadata);
-    };
+    return d => Hidden.V1.Metadata.setName(name)(d.metadata);
   }
 
   export const setLabels = (labels: { [key: string]: string }): Transform => {
-    return d => {
-      Hidden.V1.Metadata.setLabels(labels)(d.metadata);
-    };
+    return d => Hidden.V1.Metadata.setLabels(labels)(d.metadata);
   }
 
   export const setTemplateLabels = (labels: { [key: string]: string }): Transform => {
-    return d => {
-      Hidden.V1.Metadata.setLabels(labels)(d.spec.template.metadata);
-    };
+    return d => Hidden.V1.Metadata.setLabels(labels)(d.spec.template.metadata);
   }
 
   export const setMatchLabelsSelector = (labels: { [key: string]: string }): Transform => {
-    return d => {
-      Hidden.V1.LabelSelector.setMatchLabelsSelector(labels)(d.spec.selector);
-    };
+    return d => Hidden.V1.LabelSelector.setMatchLabelsSelector(labels)(d.spec.selector);
   }
 
   export const setReplicas = (replicas: number): Transform => {
-    return d => {
-      d.spec.replicas = replicas;
-    }
+    return d => d.spec.replicas = replicas;
   }
 
   export const setAppLabels = (name: string): Transform => {
@@ -92,9 +78,7 @@ export namespace Deployment {
   }
 
   export const appendContainer = (c: k8s.V1Container): Transform => {
-    return d => {
-      d.spec.template.spec.containers.push(c);
-    };
+    return d => d.spec.template.spec.containers.push(c);
   }
 }
 
@@ -110,20 +94,14 @@ export namespace Service {
   }
 
   export const setName = (name: string): Transform => {
-    return s => {
-      Hidden.V1.Metadata.setName(name)(s.metadata);
-    };
+    return s => Hidden.V1.Metadata.setName(name)(s.metadata);
   }
 
   export const setSelector = (labels: { [key: string]: string }): Transform => {
-    return s => {
-      s.spec.selector = labels;
-    };
+    return s => s.spec.selector = labels;
   }
 
   export const appendPort = (p: k8s.V1ServicePort): Transform => {
-    return s => {
-      s.spec.ports.push(p);
-    };
+    return s => s.spec.ports.push(p);
   }
 }

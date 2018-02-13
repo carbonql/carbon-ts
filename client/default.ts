@@ -2,6 +2,7 @@ import * as trans from './transform';
 import { Deployment } from './transform';
 import * as fs from 'fs';
 import * as k8s from '@kubernetes/client-node';
+import { DeploymentTypes } from './types';
 import { List } from 'linqts';
 import { V1Service } from '@kubernetes/client-node';
 import { Service } from './client';
@@ -56,7 +57,7 @@ export const deployment = (
   //       image: image,
   //       ports: port ? [port] : [],
   //     })
-  new List<Deployment.DeploymentTypes>([stub])
+  new List<DeploymentTypes>([stub])
     .Select(
       Deployment.applyTransformations(
         Deployment.setName(name),
