@@ -3,6 +3,8 @@ import { Deployment } from './transform';
 import * as fs from 'fs';
 import * as k8s from '@kubernetes/client-node';
 import { List } from 'linqts';
+import { V1Service } from '@kubernetes/client-node';
+import { Service } from './client';
 
 // //
 // // Get client.
@@ -40,6 +42,20 @@ export const deployment = (
     }
   };
 
+  // This is equivalent to the following with our SQL babel extension:
+  //
+  // FROM new List(stub)
+  // SELECT
+  //   Deployment
+  //     .transformer()
+  //     .withName(name),
+  //     .withAppLabels(name),
+  //     .withReplicas(1),
+  //     .appendContainer(<k8s.V1Container>{
+  //       name: name,
+  //       image: image,
+  //       ports: port ? [port] : [],
+  //     })
   new List<Deployment.DeploymentTypes>([stub])
     .Select(
       Deployment.applyTransformations(
@@ -53,16 +69,58 @@ export const deployment = (
         })));
 
   // Alternatively:
-  // Deployment.applyTransformations(
-  //   Deployment.setName(name),
-  //   Deployment.setAppLabels(name),
-  //   Deployment.setReplicas(1),
-  //   Deployment.appendContainer(<k8s.V1Container>{
-  //     name: name,
-  //     image: image,
-  //     ports: port ? [port] : [],
-  //   })
-  // )(stub);
+  //
+  //   Deployment.applyTransformations(
+  //     Deployment.setName(name),
+  //     Deployment.setAppLabels(name),
+  //     Deployment.setReplicas(1),
+  //     Deployment.appendContainer(<k8s.V1Container>{
+  //       name: name,
+  //       image: image,
+  //       ports: port ? [port] : [],
+  //     })
+  //   )(stub);
+
+  return stub;
+}
+
+export const service = (
+  name: string, labels: { [key: string]: string }, port: k8s.V1ServicePort
+): k8s.V1Service => {
+  const stub = <k8s.V1Service><object>{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {},
+    "spec": {
+      "selector": {},
+      "ports": [],
+    }
+  };
+
+  // This is equivalent to the following with our SQL babel extension:
+  //
+  // FROM new List(stub)
+  // SELECT
+  //   Service
+  //     .transformer()
+  //     .withName(name),
+  //     .WithSelector({app: name}),
+  //     .appendPort(port)
+  new List<k8s.V1Service>([stub])
+    .Select(
+      Service.applyTransformations(
+        Service.setName(name),
+        Service.setSelector({app: name}),
+        Service.appendPort(port),
+      ));
+
+  // Alternatively:
+  //
+  //   Service.applyTransformations(
+  //     Service.setName(name),
+  //     Service.setSelector({app: name}),
+  //     Service.appendPort(port),
+  //   )(stub);
 
   return stub;
 }

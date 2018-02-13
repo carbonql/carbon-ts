@@ -8,6 +8,13 @@ import * as request from 'request';
 const d = client.deployment("nginx", "nginx", <k8s.V1ContainerPort>{containerPort: 80});
 console.log(JSON.stringify(d, null, "  "));
 
+const s = client.service("nginx", {app: "nginx"}, <k8s.V1ServicePort>{
+  "protocol": "TCP",
+  "port": 80,
+  "targetPort": 9376
+});
+console.log(JSON.stringify(s, null, "  "));
+
 // const f = x => { "bar"; return "baz"; };
 // const node = ast.parse(f.toString());
 

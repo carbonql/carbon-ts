@@ -97,3 +97,33 @@ export namespace Deployment {
     };
   }
 }
+
+export namespace Service {
+  export type Transform = <S extends k8s.V1Service>(s: S) => void;
+
+  export const applyTransformations = (...transforms: Transform[]): Transform => {
+    return s => {
+      for (const t of transforms) {
+        t(s);
+      }
+    };
+  }
+
+  export const setName = (name: string): Transform => {
+    return s => {
+      Hidden.V1.Metadata.setName(name)(s.metadata);
+    };
+  }
+
+  export const setSelector = (labels: { [key: string]: string }): Transform => {
+    return s => {
+      s.spec.selector = labels;
+    };
+  }
+
+  export const appendPort = (p: k8s.V1ServicePort): Transform => {
+    return s => {
+      s.spec.ports.push(p);
+    };
+  }
+}
