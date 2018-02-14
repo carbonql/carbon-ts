@@ -13,11 +13,9 @@
     "outDir": "build",
     "sourceMap": true
   },
-  "include": [
-    "index.ts"
-  ],
-  // "exclude": [
-  //   "node_modules/@kubernetes/client-node",
-  //   "build"
-  // ]
+  "exclude": [
+    "node_modules/@kubernetes/client-node",
+    "guestbook",
+    "build"
+  ]
 }

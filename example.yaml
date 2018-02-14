@@ -1,0 +1,113 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    name: frontend
+  name: frontend
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: frontend
+    spec:
+      containers:
+      - env:
+        - name: GET_HOSTS_FROM
+          value: dns
+        image: gcr.io/google-samples/gb-frontend:v4
+        name: php-redis
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: frontend
+  name: frontend
+spec:
+  ports:
+  - port: 80
+  selector:
+    name: frontend
+  type: LoadBalancer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    name: redis-master
+  name: redis-master
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: redis-master
+    spec:
+      containers:
+      - env: []
+        image: gcr.io/google_containers/redis:e2e
+        name: master
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: redis-master
+  name: redis-master
+spec:
+  ports:
+  - port: 6379
+  selector:
+    name: redis-master
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    name: redis-slave
+  name: redis-slave
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        name: redis-slave
+    spec:
+      containers:
+      - env:
+        - name: GET_HOSTS_FROM
+          value: dns
+        image: gcr.io/google_samples/gb-redisslave:v1
+        name: slave
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: redis-slave
+  name: redis-slave
+spec:
+  ports:
+  - port: 6379
+  selector:
+    name: redis-slave
