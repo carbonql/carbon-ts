@@ -6,13 +6,19 @@ import { V1Pod } from '@kubernetes/client-node';
 import { List } from 'linqts';
 import * as request from 'request';
 
-const deplName = "nginx-deployment";
+const deplName = "nginx";
 
 const resources =
   new List([
     client.deployment(deplName, "nginx", <k8s.V1ContainerPort>{containerPort: 80})
   ])
-  .SelectMany(bind.Deployment.expose(deplName, 80));
+  .SelectMany(d =>
+    new List([
+      d,
+      bind.Deployment.expose(d, 80),
+      bind.Deployment.addJsonConfigFile(d, "foo.json", "/etc/foo.json"),
+    ]))
+  .ForEach(o => console.log(JSON.stringify(o, null, "  ")));
 
 // const s = client.service("nginx", {app: "nginx"}, <k8s.V1ServicePort>{
 //   "protocol": "TCP",

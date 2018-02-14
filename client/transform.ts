@@ -1,6 +1,7 @@
 import * as k8s from '@kubernetes/client-node';
 import { DeploymentTypes } from './types';
 import { labeledStatement } from 'babel-types';
+import { Transform } from 'stream';
 
 namespace Hidden {
   export namespace V1 {
@@ -79,6 +80,26 @@ export namespace Deployment {
 
   export const appendContainer = (c: k8s.V1Container): Transform => {
     return d => d.spec.template.spec.containers.push(c);
+  }
+
+  export const appendVolume = (v: k8s.V1Volume): Transform => {
+    return d => {
+      d.spec.template.spec.volumes = d.spec.template.spec.volumes || [];
+      d.spec.template.spec.volumes.push(v);
+    };
+  }
+
+  export const mapContainers = (
+    f: (c: k8s.V1Container) => void,
+    filter = (c: k8s.V1Container) => true,
+  ): Transform => {
+    return d => {
+      for (const c of d.spec.template.spec.containers) {
+        if (filter(c)) {
+          f(c);
+        }
+      }
+    };
   }
 }
 

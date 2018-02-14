@@ -125,3 +125,14 @@ export const service = (
 
   return stub;
 }
+
+export const configMap = (name: string, data: { [key: string]: string; }): k8s.V1ConfigMap => {
+  return <k8s.V1ConfigMap>{
+    "apiVersion": "v1",
+    "kind": "ConfigMap",
+    "metadata": {
+      "name": name,
+    },
+    "data": data,
+  }
+}
