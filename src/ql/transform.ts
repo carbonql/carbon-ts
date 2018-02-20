@@ -53,11 +53,7 @@ export namespace core {
         };
 
         if (port) {
-          c.ports = [
-            isFinite(<number>port)
-            ? <k8s.V1ContainerPort>{containerPort: port}
-            : <k8s.V1ContainerPort>port
-          ];
+          c.ports = util.makeContainerPorts(port);
         }
 
         return c;
@@ -112,33 +108,173 @@ export namespace core {
       // Constructors.
       //
 
-      export const make = (
-        name: string, port: k8s.V1ServicePort, labels: Labels = {app: name},
+      const stub = (
+        name: string,
+        labels?: Labels,
       ): k8s.V1Service => {
-        return <k8s.V1Service><object>{
+        const svc = <k8s.V1Service><object>{
           "kind": "Service",
           "apiVersion": "v1",
           "metadata": {
             name: name,
           },
-          "spec": {
-            "selector": labels,
-            "ports": [port],
-          }
+          "spec": {}
+        };
+        if (labels) {
+          svc.metadata.labels = labels;
         }
+
+        return svc;
       }
+
+      /**
+       * Defines a service that uses a cluster-internal IP address. This service
+       * will be directly reachable only from inside the cluster.
+       *
+       * @param  {string} name Name to give the service
+       * @param  {number|k8s.V1ServicePort|k8s.V1ServicePort[]} ports A port or
+       * list of ports for the service to expose. If a list of ports is
+       * provided, each requires names to disambiguate the accompanying endpoint
+       * objects.
+       * @param  {Labels} selector Label selector the service will use to
+       * determine which pods to send traffic to
+       * @param  {Labels={app:name}} labels Labels to give the service itself
+       * @returns The cluster-private service
+       */
+      export const makeClusterIp = (
+        name: string,
+        ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
+        selector: Labels,
+        labels: Labels = {app: name},
+      ): k8s.V1Service => {
+        const svc = stub(name, labels);
+        return merge<k8s.V1Service>(_ => ({
+          spec: <k8s.V1ServiceSpec>{
+            type: "ClusterIP",
+            ports: util.makeServicePorts(ports),
+          }
+        }))(svc);
+      }
+
+      /**
+       * Defines a service that is exposed externally using a cloud provider's
+       * load balancer implementation.
+       *
+       * This function additionally allows users to customize how kube-proxy
+       * routes traffic to pods, using the optional `externalTrafficPolicy`.
+       * That is, when the load balancer receives traffic, it distributes it to
+       * kube-proxy (exposed at a cluster-assigned port on every node in the
+       * cluster), which then passes the traffic to pods that satisfy the
+       * service's selector. The `externalTrafficPolicy` setting allows users to
+       * specify how this traffic is routed:
+       *
+       *   - If the value is "Cluster", kube-proxy is allowed to route traffic
+       *     to pods matching the service's selector on any node in the cluster,
+       *     but the client IP on the requests points at kube-proxy, rather than
+       *     the client from which the request originated.
+       *   - If the value is "Local", the client IP is retained by the
+       *     originator of the request (rather than being rewritten as it is in
+       *     the case of "Cluster"), but the traffic can be routed to only one
+       *     node with pods that match the service's selector, making it
+       *     difficult to keep load balanced. (In this case, the system
+       *     automatically sets up a `healthCheckNodePort` to guarantee that the
+       *     kube-proxy the load balancer selects will contain at least one pod
+       *     that matches the selector; kube-proxy then transparently routes
+       *     traffic to those pods.)
+       *
+       * @param  {string} name Name to give the service
+       * @param  {number|k8s.V1ServicePort|k8s.V1ServicePort[]} ports A port or
+       * list of ports for the service to expose. If a list of ports is
+       * provided, each requires names to disambiguate the accompanying endpoint
+       * objects.
+       * @param  {Labels} selector Label selector the service will use to
+       * determine which pods to send traffic to
+       * @param  {Labels={app:name}} labels Labels to give the service itself
+       * @param  {string[]} loadBalancerSourceRanges? Range of IP addresses
+       * allowed to access the load balancer. If the cloud provider does not
+       * implement this, these values will be ignored.
+       * @param  {"Local"|"Cluster"} externalTrafficPolicy? Allow the kube-proxy
+       * daemon (running on every node) to route traffic only to pods on that
+       * node ("Local"), or to pods on any node in the cluster ("Cluster"). See
+       * above for more details.
+       * @param  {string[]} externalIps? List of user-managed IP addresses
+       * (i.e., addresses not managed by Kubernetes, including external IPs not
+       * managed by Kubernetes) that will also accept traffic for this service.
+       * For example, an external load balancer.
+       * @returns The load balancer service
+       */
+      export const makeLoadBalancer = (
+        name: string,
+        ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
+        selector: Labels,
+        labels: Labels = {app: name},
+        loadBalancerSourceRanges?: string[],
+        externalTrafficPolicy?: "Local" | "Cluster",
+        externalIps?: string[],
+      ): k8s.V1Service => {
+        let svc = stub(name, labels);
+        svc = merge<k8s.V1Service>(_ => ({
+          spec: <k8s.V1ServiceSpec>{
+            type: "LoadBalancer",
+            ports: util.makeServicePorts(ports),
+            externalTrafficPolicy: externalTrafficPolicy,
+          }
+        }))(svc);
+        svc = configureForExternalTraffic(externalTrafficPolicy, loadBalancerSourceRanges)(svc);
+
+        return svc;
+      }
+
+      /**
+       * Defines a service that directs traffic to an arbitrary domain that is
+       * reachable by DNS (_e.g._, it is allowable to direct traffic to a domain
+       * external to the Kubernetes clsuter). For example, if `externalName` is
+       * set to `foo.example.com`, when a DNS request is sent to this service,
+       * it will return `externalName` in a CNAME record, which the client can
+       * then use to look up the IP address to send the traffic to.
+       *
+       * NOTE: Because it returns CNAME records, this service DOES NOT proxy
+       * requests to the `externalName`.
+       *
+       * @param  {string} serviceName Name to give the service
+       * @param  {string} externalName DNS-reachable name to direct traffic to
+       * (_e.g._, `foo.example.com`).
+       * @param  {Labels={app:name}} labels Labels to give the service itself
+       * @returns The external name service
+       */
+      export const makeExternalName = (
+        serviceName: string,
+        externalName: string,
+        labels: Labels = {app: name},
+      ): k8s.V1Service => {
+        let svc = stub(name, labels);
+        svc = merge<k8s.V1Service>(_ => ({
+          spec: <k8s.V1ServiceSpec>{
+            type: "ExternalName",
+            externalName: externalName,
+          }
+        }))(svc);
+
+        return svc;
+      }
+
+      //
+      // TODO:
+      //   * Constructor for NodePort type.
+      //   * Allow creation of service linked to specific endpoint objects.
+      //
 
       //
       // Transformers.
       //
 
-      export const setName = (name: string): Transform<k8s.V1Service> => {
-        return s => {
-          hidden.v1.metadata.setName(name)(s.metadata);
-          return s;
-        }
-      }
-
+      /**
+       * Set label selector the service uses to determine which pods to direct
+       * traffic to.
+       *
+       * @param  {Labels} labels Labels to be used to select pods
+       * @returns Transformer that sets labels in the in a service object
+       */
       export const setSelector = (labels: Labels): Transform<k8s.V1Service> => {
         return s => {
           s.spec.selector = labels;
@@ -146,11 +282,140 @@ export namespace core {
         }
       }
 
-      export const appendPort = (p: k8s.V1ServicePort): Transform<k8s.V1Service> => {
+      /**
+       * Replace existing ports exposed by the service (if any), and set them
+       * with the ports provided as argument.
+       *
+       * @param  {number|k8s.V1ServicePort|k8s.V1ServicePort[]} ports Ports to
+       * replace the current service ports with
+       * @returns Transformer that replaces the ports in a service object
+       */
+      export const setPorts = (
+        ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
+      ): Transform<k8s.V1Service> => {
         return s => {
-          s.spec.ports.push(p);
+          s.spec.ports = util.makeServicePorts(ports);
           return s;
         }
+      }
+
+      /**
+       * Append some number of ports to the list of ports exposed by a service
+       * (if any).
+       *
+       * @param  {number|k8s.V1ServicePort|k8s.V1ServicePort[]} ports Ports to
+       * append to the existing ports
+       * @returns Transformer that appends some number of ports to the existing
+       * ports in a service object
+       */
+      const appendPorts = (
+        ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
+      ): Transform<k8s.V1Service> => {
+        return s => {
+          if (s.spec.ports) {
+            s.spec.ports.concat(util.makeServicePorts(ports));
+          } else {
+            s.spec.ports = util.makeServicePorts(ports);
+          }
+          return s;
+        }
+      }
+
+      /**
+       * Configure a service with type "LoadBalancer" for external traffic. This
+       * includes specifying allowable IP source ranges for the load balancer to
+       * accept, and a set of external IPs that we will allow the load balancer
+       * to direct traffic to.
+       *
+       * This function additionally allows users to customize how kube-proxy
+       * routes traffic to pods, using the optional `externalTrafficPolicy`.
+       * That is, when the load balancer receives traffic, it distributes it to
+       * kube-proxy (exposed at a cluster-assigned port on every node in the
+       * cluster), which then passes the traffic to pods that satisfy the
+       * service's selector. The `externalTrafficPolicy` setting allows users to
+       * specify how this traffic is routed:
+       *
+       *   - If the value is "Cluster", kube-proxy is allowed to route traffic
+       *     to pods matching the service's selector on any node in the cluster,
+       *     but the client IP on the requests points at kube-proxy, rather than
+       *     the client from which the request originated.
+       *   - If the value is "Local", the client IP is retained by the
+       *     originator of the request (rather than being rewritten as it is in
+       *     the case of "Cluster"), but the traffic can be routed to only one
+       *     node with pods that match the service's selector, making it
+       *     difficult to keep load balanced. (In this case, the system
+       *     automatically sets up a `healthCheckNodePort` to guarantee that the
+       *     kube-proxy the load balancer selects will contain at least one pod
+       *     that matches the selector; kube-proxy then transparently routes
+       *     traffic to those pods.)
+       *
+       * @param  {"Local"|"Cluster"="Cluster"} externalTrafficPolicy Allow the
+       * kube-proxy daemon (running on every node) to route traffic only to pods
+       * on that node ("Local"), or to pods on any node in the cluster
+       * ("Cluster"). See above for more details.
+       * @param  {string[]} loadBalancerSourceRanges? Range of IP addresses
+       * allowed to access the load balancer. If the cloud provider does not
+       * implement this, these values will be ignored.
+       * @param  {string[]} externalIps? List of user-managed IP addresses
+       * (i.e., addresses not managed by Kubernetes, including external IPs not
+       * managed by Kubernetes) that will also accept traffic for this service.
+       * For example, an external load balancer.
+       * @returns Transformer that configures the service for external traffic
+       */
+      export const configureForExternalTraffic = (
+        externalTrafficPolicy: "Local" | "Cluster" = "Cluster",
+        loadBalancerSourceRanges?: string[],
+        externalIps?: string[],
+      ): Transform<k8s.V1Service> => {
+        return s => {
+          if (s.spec.type !== "LoadBalancer") {
+            throw new Error("Can't configure external traffic on service whose type is not `LoadBalancer`");
+          }
+
+          s.spec.externalTrafficPolicy = externalTrafficPolicy;
+
+          if (loadBalancerSourceRanges) {
+            s.spec.loadBalancerSourceRanges = loadBalancerSourceRanges;
+          }
+
+          if (externalIps) {
+            s.spec.externalIPs = externalIps;
+          }
+
+          return s;
+        };
+      }
+      /**
+       * Remove session affinity configuration from service.
+       *
+       * @returns Transformer that removes session affinity configuration from service
+       */
+      export const setSessionAffinityNone = (): Transform<k8s.V1Service> => {
+        return s => {
+          s.spec.sessionAffinity = "None";
+          delete s.spec.sessionAffinityConfig;
+          return s;
+        };
+      }
+
+
+      /**
+       * Set session affinity to "stick" for some number of seconds.
+       *
+       * @param  {number} timeoutSeconds Seconds a session should "stick" to pod
+       * @returns Transformer that adds session affinity configuraiton to service
+       */
+      export const setSessionAffinity = (timeoutSeconds: number): Transform<k8s.V1Service> => {
+        return s => {
+          s.spec.sessionAffinity = "ClientIP";
+          s.spec.sessionAffinityConfig = <k8s.V1SessionAffinityConfig>{
+            clientIP: <k8s.V1ClientIPConfig>{
+              timeoutSeconds: timeoutSeconds,
+            }
+          };
+
+          return s;
+        };
       }
     }
   }
@@ -167,16 +432,16 @@ export namespace apps {
       // Transformers.
       //
 
-      export const setName = (name: string): Transform<DeploymentTypes> => {
-        return d => {
-          hidden.v1.metadata.setName(name)(d.metadata);
-          return d;
-        }
-      }
+      // export const setName = (name: string): Transform<DeploymentTypes> => {
+      //   return d => {
+      //     hidden.v1.metadata.setName(name)(d.metadata);
+      //     return d;
+      //   }
+      // }
 
       export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
         return d => {
-          hidden.v1.metadata.setLabels(labels)(d.metadata);
+          util.v1.metadata.setLabels(labels)(d.metadata);
           return d;
         }
       }
@@ -188,31 +453,31 @@ export namespace apps {
         }
       }
 
-      export const setReplicas = (replicas: number): Transform<DeploymentTypes> => {
-        return d => {
-          d.spec.replicas = replicas;
-          return d;
-        }
-      }
+      // export const setReplicas = (replicas: number): Transform<DeploymentTypes> => {
+      //   return d => {
+      //     d.spec.replicas = replicas;
+      //     return d;
+      //   }
+      // }
 
-      export const setUpdateStrategyRecreate = (): Transform<DeploymentTypes> => {
-        return d => {
-          d.spec.strategy = <any>{type: "Recreate"};
-          return d;
-        }
-      }
+      // export const setUpdateStrategyRecreate = (): Transform<DeploymentTypes> => {
+      //   return d => {
+      //     d.spec.strategy = <any>{type: "Recreate"};
+      //     return d;
+      //   }
+      // }
 
-      export const setUpdateStrategyRolling = (
-        params: k8s.AppsV1beta1RollingUpdateDeployment
-      ): Transform<DeploymentTypes> => {
-        return d => {
-          d.spec.strategy = {
-            type: "RollingUpdate",
-            rollingUpdate: params,
-          };
-          return d;
-        }
-      }
+      // export const setUpdateStrategyRolling = (
+      //   params: k8s.AppsV1beta1RollingUpdateDeployment
+      // ): Transform<DeploymentTypes> => {
+      //   return d => {
+      //     d.spec.strategy = {
+      //       type: "RollingUpdate",
+      //       rollingUpdate: params,
+      //     };
+      //     return d;
+      //   }
+      // }
 
       export namespace pod {
         export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
@@ -222,12 +487,12 @@ export namespace apps {
           }
         }
 
-        export const appendContainer = (c: k8s.V1Container): Transform<DeploymentTypes> => {
-          return d => {
-            d.spec.template.spec.containers.push(c);
-            return d;
-          }
-        }
+        // export const appendContainer = (c: k8s.V1Container): Transform<DeploymentTypes> => {
+        //   return d => {
+        //     d.spec.template.spec.containers.push(c);
+        //     return d;
+        //   }
+        // }
 
         export const appendVolume = (v: k8s.V1Volume): Transform<DeploymentTypes> => {
           return d => {
@@ -269,13 +534,9 @@ export namespace apps {
         port: k8s.V1ServicePort | number, serviceName?: string, svcType: string = "ClusterIP",
       ): Transform<DeploymentTypes, k8s.V1Service> => {
         return d => {
-          let svcPort = isFinite(<number>port)
-            ? <k8s.V1ServicePort>{port: port, targetPort: port}
-            : <k8s.V1ServicePort>port;
-
-          const svc = core.v1.service.make(
+          const svc = core.v1.service.makeClusterIp(
             serviceName ? serviceName : d.metadata.name,
-            svcPort,
+            util.makeServicePorts(port),
             d.spec.template.metadata.labels);
 
           svc.spec.type = svcType;
@@ -334,12 +595,41 @@ export namespace apps {
 // Private helpers.
 //
 
-namespace hidden {
+namespace util {
+  export const makeContainerPorts = (
+    ports: number | k8s.V1ContainerPort | k8s.V1ContainerPort[],
+  ): k8s.V1ContainerPort[] => {
+    if (Array.isArray(ports)) {
+      return ports;
+    } else if (isFinite(<number>ports)) {
+      return [<k8s.V1ContainerPort>{containerPort: ports}];
+    }
+    return [<k8s.V1ContainerPort>ports];
+  }
+
+  export const makeServicePorts = (
+    ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
+  ): k8s.V1ServicePort[] => {
+    if (Array.isArray(ports)) {
+      return ports;
+    } else if (isFinite(<number>ports)) {
+      return [<k8s.V1ServicePort>{port: ports, targetPort: ports}];
+    }
+    return [<k8s.V1ServicePort>ports];
+  }
+
   export namespace v1 {
     export namespace metadata {
       export const setName = (name: string): Transform<k8s.V1ObjectMeta> => {
         return m => {
           m.name = name;
+          return m;
+        };
+      }
+
+      export const setNamespace = (namespace: string): Transform<k8s.V1ObjectMeta> => {
+        return m => {
+          m.namespace = namespace;
           return m;
         };
       }
