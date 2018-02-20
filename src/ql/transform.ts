@@ -12,6 +12,13 @@ export const merge = <TIn>(makeRight: (TIn) => any): Transform<TIn> => {
   }
 }
 
+export const doTransform = <TIn>(...doThese: ((TIn) => void)[]): Transform<TIn> => {
+  return tin => {
+    doThese.forEach(doThis => doThis(tin));
+    return tin;
+  }
+}
+
 //
 // Core.
 //
@@ -77,28 +84,7 @@ export namespace core {
             appLabels = {app: deploymentName};
           }
 
-          const stub = <k8s.AppsV1beta1Deployment><object>{
-            "apiVersion": "apps/v1beta1",
-            "kind": "Deployment",
-            "metadata": {
-              name: deploymentName,
-              labels: appLabels,
-            },
-            "spec": {
-              "replicas": replicas,
-              "selector": {},
-              "template": {
-                "metadata": {
-                  labels: appLabels
-                },
-                "spec": {
-                  "containers": [c]
-                }
-              }
-            }
-          };
-
-          return stub;
+          return apps.v1beta2.deployment.make(deploymentName, appLabels, c, replicas);
         }
       }
     }
@@ -276,10 +262,7 @@ export namespace core {
        * @returns Transformer that sets labels in the in a service object
        */
       export const setSelector = (labels: Labels): Transform<k8s.V1Service> => {
-        return s => {
-          s.spec.selector = labels;
-          return s;
-        }
+        return doTransform(s => s.spec.selector = labels);
       }
 
       /**
@@ -293,10 +276,7 @@ export namespace core {
       export const setPorts = (
         ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
       ): Transform<k8s.V1Service> => {
-        return s => {
-          s.spec.ports = util.makeServicePorts(ports);
-          return s;
-        }
+        return doTransform(s => s.spec.ports = util.makeServicePorts(ports));
       }
 
       /**
@@ -311,14 +291,13 @@ export namespace core {
       const appendPorts = (
         ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
       ): Transform<k8s.V1Service> => {
-        return s => {
+        return doTransform(s => {
           if (s.spec.ports) {
             s.spec.ports.concat(util.makeServicePorts(ports));
           } else {
             s.spec.ports = util.makeServicePorts(ports);
           }
-          return s;
-        }
+        });
       }
 
       /**
@@ -367,7 +346,7 @@ export namespace core {
         loadBalancerSourceRanges?: string[],
         externalIps?: string[],
       ): Transform<k8s.V1Service> => {
-        return s => {
+        return doTransform(s => {
           if (s.spec.type !== "LoadBalancer") {
             throw new Error("Can't configure external traffic on service whose type is not `LoadBalancer`");
           }
@@ -381,9 +360,7 @@ export namespace core {
           if (externalIps) {
             s.spec.externalIPs = externalIps;
           }
-
-          return s;
-        };
+        });
       }
       /**
        * Remove session affinity configuration from service.
@@ -391,11 +368,10 @@ export namespace core {
        * @returns Transformer that removes session affinity configuration from service
        */
       export const setSessionAffinityNone = (): Transform<k8s.V1Service> => {
-        return s => {
+        return doTransform(s => {
           s.spec.sessionAffinity = "None";
           delete s.spec.sessionAffinityConfig;
-          return s;
-        };
+        });
       }
 
 
@@ -406,16 +382,14 @@ export namespace core {
        * @returns Transformer that adds session affinity configuraiton to service
        */
       export const setSessionAffinity = (timeoutSeconds: number): Transform<k8s.V1Service> => {
-        return s => {
+        return doTransform(s => {
           s.spec.sessionAffinity = "ClientIP";
           s.spec.sessionAffinityConfig = <k8s.V1SessionAffinityConfig>{
             clientIP: <k8s.V1ClientIPConfig>{
               timeoutSeconds: timeoutSeconds,
             }
           };
-
-          return s;
-        };
+        });
       }
     }
   }
@@ -426,8 +400,40 @@ export namespace core {
 //
 
 export namespace apps {
-  export namespace v1beta1 {
+  export namespace v1beta2 {
     export namespace deployment {
+      //
+      // Constructors.
+      //
+
+      export const make = (
+        name: string,
+        appLabels: Labels,
+        container: k8s.V1Container,
+        replicas: number = 1,
+      ): DeploymentTypes => {
+        return <k8s.V1beta2Deployment>{
+          "apiVersion": "apps/v1beta2",
+          "kind": "Deployment",
+          "metadata": {
+            name: name,
+            labels: appLabels,
+          },
+          "spec": {
+            "replicas": replicas,
+            "selector": {},
+            "template": {
+              "metadata": {
+                labels: appLabels
+              },
+              "spec": {
+                "containers": [container]
+              }
+            }
+          }
+        };
+      }
+
       //
       // Transformers.
       //
@@ -440,17 +446,11 @@ export namespace apps {
       // }
 
       export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
-        return d => {
-          util.v1.metadata.setLabels(labels)(d.metadata);
-          return d;
-        }
+        return doTransform(d => util.v1.metadata.setLabels(labels)(d.metadata));
       }
 
       export const setMatchLabelsSelector = (labels: Labels): Transform<DeploymentTypes> => {
-        return d => {
-          d.spec.selector = <k8s.V1LabelSelector><object>{matchLabels: labels};
-          return d;
-        }
+        return doTransform(d => d.spec.selector = <k8s.V1LabelSelector><object>{matchLabels: labels});
       }
 
       // export const setReplicas = (replicas: number): Transform<DeploymentTypes> => {
@@ -481,10 +481,7 @@ export namespace apps {
 
       export namespace pod {
         export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
-          return d => {
-            d.spec.template.metadata.labels = labels;
-            return d;
-          }
+          return doTransform(d => d.spec.template.metadata.labels = labels);
         }
 
         // export const appendContainer = (c: k8s.V1Container): Transform<DeploymentTypes> => {
@@ -495,51 +492,64 @@ export namespace apps {
         // }
 
         export const appendVolume = (v: k8s.V1Volume): Transform<DeploymentTypes> => {
-          return d => {
+          return doTransform(d => {
             d.spec.template.spec.volumes = d.spec.template.spec.volumes || [];
             d.spec.template.spec.volumes.push(v);
-            return d;
-          };
+          });
         }
 
         export const mapContainers = (
           f: (c: k8s.V1Container) => void,
           filter = (c: k8s.V1Container) => true,
         ): Transform<DeploymentTypes> => {
-          return d => {
+          return doTransform(d => {
             for (const c of d.spec.template.spec.containers) {
               if (filter(c)) {
                 f(c);
               }
             }
-            return d;
-          };
+          });
         }
       }
 
       export const setAppLabels = (labels: Labels): Transform<DeploymentTypes> => {
-        return d => {
-          setLabels(labels)(d);
-          pod.setLabels(labels)(d);
-          setMatchLabelsSelector(labels)(d);
-          return d;
-        };
+        return doTransform(
+          setLabels(labels),
+          pod.setLabels(labels),
+          setMatchLabelsSelector(labels));
       }
 
       //
       // Verbs.
       //
 
-      export const expose = (
-        port: k8s.V1ServicePort | number, serviceName?: string, svcType: string = "ClusterIP",
+      export const exposeWithLoadBalancer = (
+        port: k8s.V1ServicePort | number,
+        serviceName?: string
+      ): Transform<DeploymentTypes, k8s.V1Service> => {
+        return d => {
+          const svc = core.v1.service.makeLoadBalancer(
+            serviceName ? serviceName : d.metadata.name,
+            util.makeServicePorts(port),
+            d.spec.template.metadata.labels,
+            d.metadata.labels,
+          );
+
+          return svc;
+        }
+      }
+
+      export const exposeToCluster = (
+        port: k8s.V1ServicePort | number,
+        serviceName?: string
       ): Transform<DeploymentTypes, k8s.V1Service> => {
         return d => {
           const svc = core.v1.service.makeClusterIp(
             serviceName ? serviceName : d.metadata.name,
             util.makeServicePorts(port),
-            d.spec.template.metadata.labels);
-
-          svc.spec.type = svcType;
+            d.spec.template.metadata.labels,
+            d.metadata.labels,
+          );
 
           return svc;
         }
@@ -621,71 +631,53 @@ namespace util {
   export namespace v1 {
     export namespace metadata {
       export const setName = (name: string): Transform<k8s.V1ObjectMeta> => {
-        return m => {
-          m.name = name;
-          return m;
-        };
+        return doTransform(m => m.name = name);
       }
 
       export const setNamespace = (namespace: string): Transform<k8s.V1ObjectMeta> => {
-        return m => {
-          m.namespace = namespace;
-          return m;
-        };
+        return doTransform(m => m.namespace = namespace);
       }
 
       export const setAnnotations = (labels: Labels): Transform<k8s.V1ObjectMeta> => {
-        return m => {
-          m.annotations = labels;
-          return m;
-        };
+        return doTransform(m => m.annotations = labels)
       }
 
       export const mergeAnnotations = (labels: Labels): Transform<k8s.V1ObjectMeta> => {
-        return m => {
+        return doTransform(m =>
           m.annotations
             ? Object.assign(m.annotations, labels)
-            : m.annotations = labels;
-          return m;
-        };
+            : m.annotations = labels);
       }
 
       export const setLabels = (labels: Labels): Transform<k8s.V1ObjectMeta> => {
-        return m => {
-          m.labels = labels;
-          return m;
-        };
+        return doTransform(m => m.labels = labels);
       }
 
       export const mergeLabels = (labels: Labels): Transform<k8s.V1ObjectMeta> => {
-        return m => {
+        return doTransform(m =>
           m.labels
             ? Object.assign(m.labels, labels)
-            : m.labels = labels;
-          return m;
-        };
+            : m.labels = labels);
       }
     }
 
     export namespace labelSelector {
       export const setMatchExpression = (selectors: k8s.V1LabelSelectorRequirement[]): Transform<k8s.V1LabelSelector> => {
-        return s => {
+        return doTransform(s => {
           if (s.matchExpressions) {
             throw new Error("Could not add `matchExpressions` selector to deployment: can't have both that and a `matchLabels` selector");
           }
           s.matchExpressions = selectors;
-          return s;
-        };
+        });
       }
 
       export const setMatchLabels = (labels: Labels): Transform<k8s.V1LabelSelector> => {
-        return s => {
+        return doTransform(s => {
           if (s.matchExpressions) {
             throw new Error("Could not add `matchLabels` selector to deployment: can't have both that and a `matchExpression` selector");
           }
           s.matchLabels = labels;
-          return s;
-        };
+        });
       }
     }
   }
