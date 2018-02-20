@@ -1,6 +1,4 @@
-import {merge, core, apps} from '../client/transform';
-import * as transform from '../client/transform';
-console.log(transform);
+import {merge, core, apps} from '../../src';
 const container = core.v1.container,
       deployment = apps.v1beta1.deployment,
       service = core.v1.service;
