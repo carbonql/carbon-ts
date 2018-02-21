@@ -5,8 +5,9 @@
   "scripts": {
     "build-ts": "node_modules/.bin/tsc -p '/Users/alex/src/carbon-ts/tsconfig.json'",
     "build-ex": "./node_modules/.bin/babel examples/guestbook/guestbook.js -d build/examples/guestbook",
+    "build": "npm run build-ts && npm run build-ex",
     "run-ex": "node ./build/examples/guestbook/guestbook.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && node_modules/mocha/bin/_mocha build/test"
   },
   "author": "",
   "license": "MIT",
@@ -15,6 +16,10 @@
     "@babel/core": "^7.0.0-beta.40",
     "@babel/plugin-proposal-pipeline-operator": "^7.0.0-beta.40",
     "@babel/preset-es2015": "^7.0.0-beta.40",
+    "@types/chai": "^4.1.2",
+    "@types/mocha": "^2.2.48",
+    "chai": "^4.1.2",
+    "mocha": "^5.0.1",
     "typescript": "^2.7.1"
   },
   "main": "dist/src/index.js",
