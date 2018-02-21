@@ -69,11 +69,23 @@ export namespace core {
       // Verbs.
       //
 
+      export const toPod = (
+        name: string,
+      ): Transform<k8s.V1Container | k8s.V1Container[], k8s.V1Pod> => {
+        return containers => {
+          if (!Array.isArray(containers)) {
+            containers = [containers];
+          }
+
+          return pod.make(name, containers);
+        }
+      }
+
       export const deploy = (
         replicas = 1,
         deploymentName?: string,
         appLabels?: Labels,
-      ): Transform<k8s.V1Container, DeploymentTypes> => {
+      ): Transform<k8s.V1Container, k8s.V1beta2Deployment> => {
         return c => {
           if (!deploymentName) {
             deploymentName = c.name;
@@ -88,11 +100,57 @@ export namespace core {
       }
     }
 
-    export namespace service {
+    export namespace pod {
       //
       // Constructors.
       //
 
+      export const make = (
+        name: string,
+        containers: k8s.V1Container | k8s.V1Container[],
+        appLabels: Labels = {app: name},
+      ): k8s.V1Pod => {
+        if (!Array.isArray(containers)) {
+          containers = [containers];
+        }
+
+        return <k8s.V1Pod><object>{
+          apiVersion: "v1",
+          kind: "Pod",
+          metadata: {
+            name: name,
+            labels: appLabels,
+          },
+          spec: {
+            containers: containers,
+          }
+        };
+      }
+
+      //
+      // Verbs.
+      //
+
+      export const deploy = (
+        replicas = 1,
+        deploymentName?: string,
+        appLabels?: Labels,
+      ): Transform<k8s.V1Pod, k8s.V1beta2Deployment> => {
+        return p => {
+          if (!deploymentName) {
+            deploymentName = p.metadata.name;
+          }
+
+          if (!appLabels) {
+            appLabels = {app: deploymentName};
+          }
+
+          return apps.v1beta2.deployment.make(deploymentName, appLabels, p, replicas);
+        }
+      }
+    }
+
+    export namespace service {
       const stub = (
         name: string,
         labels?: Labels,
@@ -111,6 +169,10 @@ export namespace core {
 
         return svc;
       }
+
+      //
+      // Constructors.
+      //
 
       /**
        * Defines a service that uses a cluster-internal IP address. This service
@@ -415,10 +477,19 @@ export namespace apps {
       export const make = (
         name: string,
         appLabels: Labels,
-        container: k8s.V1Container,
+        app: k8s.V1Container | k8s.V1Container[] | k8s.V1Pod,
         replicas: number = 1,
         revisionHistoryLimit = 10,
-      ): DeploymentTypes => {
+      ): k8s.V1beta2Deployment => {
+        let podSpec: k8s.V1PodSpec | null = null;
+        if ((<any>app)["kind"] === "Pod") {
+          podSpec = (<k8s.V1Pod><object>app).spec;
+        } else if (Array.isArray(app)) {
+          podSpec = <k8s.V1PodSpec>{containers: app};
+        } else {
+          podSpec = <k8s.V1PodSpec>{containers: [app]};
+        }
+
         return <k8s.V1beta2Deployment>{
           apiVersion: "apps/v1beta2",
           kind: "Deployment",
@@ -434,9 +505,7 @@ export namespace apps {
               metadata: {
                 labels: appLabels
               },
-              spec: {
-                containers: [container]
-              }
+              spec: podSpec,
             }
           }
         };
