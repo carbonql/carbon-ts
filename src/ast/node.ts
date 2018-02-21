@@ -111,7 +111,7 @@ export interface IndexExpression extends Expression {
 }
 
 export const makeIndexExpr = (target: Expression, index: string): IndexExpression => {
-	return {type: "IndexExpression", target: target, index: makeIdentifier(name)};
+	return {type: "IndexExpression", target: target, index: makeIdentifier(index)};
 }
 
 //

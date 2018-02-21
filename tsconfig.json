@@ -2,16 +2,25 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    // "strictNullChecks": true,
-
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "allowJs": true,
     "outDir": "build/src",
-    "sourceMap": true
+    "sourceMap": true,
+
+    // Compiler strictness settings.
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "pretty": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "strict": true
   },
   "include": [
     "src"

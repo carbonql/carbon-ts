@@ -1,11 +1,10 @@
 import * as babel from 'babel-core';
-import { isExpression } from 'babel-types';
-import { makeBoolValue, Expression, makeBlockExpression, makeLambdaExpression, Identifiers, makeIdentifier, Node, Nodes, makeReturnStmt, makeStringValue } from './ast';
+import { Expression, makeBlockExpression, makeLambdaExpression, Identifiers, makeIdentifier, Node, Nodes, makeReturnStmt, makeStringValue } from './ast';
 
 export const parse = (text: string): Expression | null => {
   try {
     const result = babel.transform(text);
-    return traverse(result.ast);
+    return traverse(<babel.Node>result.ast);
   } catch (e) {
     console.log(e);
   }

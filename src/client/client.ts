@@ -1,5 +1,4 @@
 import * as k8s from '@hausdorff/client-node';
-import { List } from 'linqts';
 
 //
 // Get client.
@@ -7,19 +6,17 @@ import { List } from 'linqts';
 const client = k8s.Config.defaultClient();
 client.listNamespacedPod('default')
   .then((res) => {
-    const pods = new List<k8s.V1Pod>(res.body.items)
-      // .Where((pod: k8s.V1Pod) => pod.metadata.labels["app"] === "nginx")
-      .ForEach((pod: k8s.V1Pod) => {
-        console.log(pod.metadata.name);
-        console.log("  " + pod.status.phase);
-      });
+    for (const pod of res.body.items) {
+      console.log(pod.metadata.name);
+      console.log("  " + pod.status.phase);
+    }
   })
   .catch(err => {
     console.log(JSON.stringify(err, null, "  "));
   });
 
 let kc = new k8s.KubeConfig();
-kc.loadFromFile(process.env.KUBECONFIG);
+kc.loadFromFile(<string>process.env.KUBECONFIG);
 const apps = new k8s.Apps_v1beta1Api(kc.getCurrentCluster()['server']);
 apps.setDefaultAuthentication(kc);
 

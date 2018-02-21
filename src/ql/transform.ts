@@ -1,18 +1,17 @@
 import * as fs from 'fs';
 import * as k8s from '@hausdorff/client-node';
 import * as path from 'path';
-import { V1Service } from '@hausdorff/client-node';
 
 export type Transform<TIn, TOut=TIn> = (ti: TIn) => TOut;
 
-export const merge = <TIn>(makeRight: (TIn) => any): Transform<TIn> => {
+export const merge = <TIn>(makeRight: (o: TIn) => any): Transform<TIn> => {
   return left => {
     Object.assign(left, makeRight(left));
     return left;
   }
 }
 
-export const doTransform = <TIn>(...doThese: ((TIn) => void)[]): Transform<TIn> => {
+export const doTransform = <TIn>(...doThese: ((o: TIn) => void)[]): Transform<TIn> => {
   return tin => {
     doThese.forEach(doThis => doThis(tin));
     return tin;
@@ -138,6 +137,7 @@ export namespace core {
           spec: <k8s.V1ServiceSpec>{
             type: "ClusterIP",
             ports: util.makeServicePorts(ports),
+            selector: selector,
           }
         }))(svc);
       }
@@ -199,11 +199,17 @@ export namespace core {
         externalIps?: string[],
       ): k8s.V1Service => {
         let svc = stub(name, labels);
+
+        if (externalIps) {
+          svc.spec.externalIPs = externalIps;
+        }
+
         svc = merge<k8s.V1Service>(_ => ({
           spec: <k8s.V1ServiceSpec>{
             type: "LoadBalancer",
             ports: util.makeServicePorts(ports),
             externalTrafficPolicy: externalTrafficPolicy,
+            selector: selector,
           }
         }))(svc);
         svc = configureForExternalTraffic(externalTrafficPolicy, loadBalancerSourceRanges)(svc);
@@ -231,9 +237,9 @@ export namespace core {
       export const makeExternalName = (
         serviceName: string,
         externalName: string,
-        labels: Labels = {app: name},
+        labels: Labels = {app: serviceName},
       ): k8s.V1Service => {
-        let svc = stub(name, labels);
+        let svc = stub(serviceName, labels);
         svc = merge<k8s.V1Service>(_ => ({
           spec: <k8s.V1ServiceSpec>{
             type: "ExternalName",
@@ -288,7 +294,7 @@ export namespace core {
        * @returns Transformer that appends some number of ports to the existing
        * ports in a service object
        */
-      const appendPorts = (
+      export const appendPorts = (
         ports: number | k8s.V1ServicePort | k8s.V1ServicePort[],
       ): Transform<k8s.V1Service> => {
         return doTransform(s => {
@@ -488,7 +494,7 @@ export namespace apps {
 
         export const mapContainers = (
           f: (c: k8s.V1Container) => void,
-          filter = (c: k8s.V1Container) => true,
+          filter = (_: k8s.V1Container) => true,
         ): Transform<DeploymentTypes> => {
           return doTransform(d => {
             for (const c of d.spec.template.spec.containers) {
@@ -563,8 +569,7 @@ export namespace apps {
         filePath: string,
         mountPath: string,
         configMapName?: string,
-        configMapVolumeMountName?: string,
-        containerFilter = (c: k8s.V1Container) => true,
+        containerFilter = (_: k8s.V1Container) => true,
       ): Transform<DeploymentTypes, k8s.V1ConfigMap> => {
         return d => {
           let data: any = {};
