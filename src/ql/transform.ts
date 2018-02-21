@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import * as k8s from '@kubernetes/client-node';
+import * as k8s from '@hausdorff/client-node';
 import * as path from 'path';
-import { V1Service } from '@kubernetes/client-node';
+import { V1Service } from '@hausdorff/client-node';
 
 export type Transform<TIn, TOut=TIn> = (ti: TIn) => TOut;
 

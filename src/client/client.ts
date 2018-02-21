@@ -1,4 +1,4 @@
-import * as k8s from '@kubernetes/client-node';
+import * as k8s from '@hausdorff/client-node';
 import { List } from 'linqts';
 
 //
