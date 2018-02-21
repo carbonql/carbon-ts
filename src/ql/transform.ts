@@ -411,23 +411,25 @@ export namespace apps {
         appLabels: Labels,
         container: k8s.V1Container,
         replicas: number = 1,
+        revisionHistoryLimit = 10,
       ): DeploymentTypes => {
         return <k8s.V1beta2Deployment>{
-          "apiVersion": "apps/v1beta2",
-          "kind": "Deployment",
-          "metadata": {
+          apiVersion: "apps/v1beta2",
+          kind: "Deployment",
+          metadata: {
             name: name,
             labels: appLabels,
           },
-          "spec": {
-            "replicas": replicas,
-            "selector": {},
-            "template": {
-              "metadata": {
+          spec: {
+            revisionHistoryLimit: revisionHistoryLimit,
+            replicas: replicas,
+            selector: {},
+            template: {
+              metadata: {
                 labels: appLabels
               },
-              "spec": {
-                "containers": [container]
+              spec: {
+                containers: [container]
               }
             }
           }
@@ -438,59 +440,45 @@ export namespace apps {
       // Transformers.
       //
 
-      // export const setName = (name: string): Transform<DeploymentTypes> => {
-      //   return d => {
-      //     hidden.v1.metadata.setName(name)(d.metadata);
-      //     return d;
-      //   }
-      // }
+      export const configureLifecycle = (
+        minReadySeconds?: number,
+        progressDeadlineSeconds?: number,
+      ): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => {
+          if (minReadySeconds) {
+            d.spec.minReadySeconds = minReadySeconds;
+          }
 
-      export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
-        return doTransform(d => util.v1.metadata.setLabels(labels)(d.metadata));
+          if (progressDeadlineSeconds) {
+            d.spec.progressDeadlineSeconds = progressDeadlineSeconds;
+          }
+        });
       }
 
-      export const setMatchLabelsSelector = (labels: Labels): Transform<DeploymentTypes> => {
-        return doTransform(d => d.spec.selector = <k8s.V1LabelSelector><object>{matchLabels: labels});
+      export const setUpdateStrategyReplace = (): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => {
+          d.spec.strategy = <k8s.V1beta2DeploymentStrategy>{
+            type: "Recreate",
+          }
+        });
       }
 
-      // export const setReplicas = (replicas: number): Transform<DeploymentTypes> => {
-      //   return d => {
-      //     d.spec.replicas = replicas;
-      //     return d;
-      //   }
-      // }
-
-      // export const setUpdateStrategyRecreate = (): Transform<DeploymentTypes> => {
-      //   return d => {
-      //     d.spec.strategy = <any>{type: "Recreate"};
-      //     return d;
-      //   }
-      // }
-
-      // export const setUpdateStrategyRolling = (
-      //   params: k8s.AppsV1beta1RollingUpdateDeployment
-      // ): Transform<DeploymentTypes> => {
-      //   return d => {
-      //     d.spec.strategy = {
-      //       type: "RollingUpdate",
-      //       rollingUpdate: params,
-      //     };
-      //     return d;
-      //   }
-      // }
+      export const setUpdateStrategyRolling = (
+        maxSurge?: number | string,
+        maxUnavailable?: number | string,
+      ): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => {
+          d.spec.strategy = <k8s.V1beta2DeploymentStrategy>{
+            type: "RollingUpdate",
+            rollingUpdate: {
+              maxSurge: maxSurge,
+              maxUnavailable: maxUnavailable,
+            },
+          };
+        });
+      }
 
       export namespace pod {
-        export const setLabels = (labels: Labels): Transform<DeploymentTypes> => {
-          return doTransform(d => d.spec.template.metadata.labels = labels);
-        }
-
-        // export const appendContainer = (c: k8s.V1Container): Transform<DeploymentTypes> => {
-        //   return d => {
-        //     d.spec.template.spec.containers.push(c);
-        //     return d;
-        //   }
-        // }
-
         export const appendVolume = (v: k8s.V1Volume): Transform<DeploymentTypes> => {
           return doTransform(d => {
             d.spec.template.spec.volumes = d.spec.template.spec.volumes || [];
@@ -514,13 +502,29 @@ export namespace apps {
 
       export const setAppLabels = (labels: Labels): Transform<DeploymentTypes> => {
         return doTransform(
-          setLabels(labels),
-          pod.setLabels(labels),
-          setMatchLabelsSelector(labels));
+          d => util.v1.metadata.setLabels(labels)(d.metadata),
+          d => d.spec.template.metadata.labels = labels,
+          d => d.spec.selector = <k8s.V1LabelSelector><object>{matchLabels: labels});
       }
 
       //
       // Verbs.
+      //
+
+      export const pause = (): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => d.spec.paused = true);
+      }
+
+      export const unpause = (): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => d.spec.paused = false);
+      }
+
+      export const scale = (replicas: number): Transform<k8s.V1beta2Deployment> => {
+        return doTransform(d => d.spec.replicas = replicas);
+      }
+
+      //
+      // TODO: autoscale
       //
 
       export const exposeWithLoadBalancer = (
@@ -586,13 +590,13 @@ export namespace apps {
               })
             },
             containerFilter
-          )(d),
+          )(d);
           pod.appendVolume(<k8s.V1Volume>{
             name: configMapVolumeName,
             configMap: {
               name: configMapName,
             },
-          })(d)
+          })(d);
 
           return core.v1.configMap.make(configMapName, data);
         }
