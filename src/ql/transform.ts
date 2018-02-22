@@ -68,6 +68,46 @@ export namespace core {
       // Verbs.
       //
 
+      export const addEnv = (
+        name: string,
+        value: string,
+      ): Transform<k8s.V1Container> =>
+        doTransform(c => {
+          const envVar = <k8s.V1EnvVar>{
+            name: name,
+            value: value,
+          };
+
+          if (c.env) {
+            c.env.push(envVar);
+          } else {
+            c.env = [envVar];
+          }
+        })
+
+      export const addEnvFromSecret = (
+        name: string,
+        secretKeyName: string,
+        secretKey: string,
+      ): Transform<k8s.V1Container> =>
+        doTransform(c => {
+          const secretRef = <k8s.V1EnvVar>{
+            name: name,
+            valueFrom: {
+              secretKeyRef: {
+                name: secretKeyName,
+                key: secretKey,
+              }
+            }
+          };
+
+          if (c.env) {
+            c.env.push(secretRef);
+          } else {
+            c.env = [secretRef];
+          }
+        });
+
       export const toPod = (
         name: string,
       ): Transform<k8s.V1Container | k8s.V1Container[], k8s.V1Pod> => {
@@ -100,10 +140,16 @@ export namespace core {
     }
 
     export namespace persistentVolume {
-      const stub = (
+      export type AccessModeTypes = "ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany";
+
+      //
+      // Constructors.
+      //
+
+      export const make = (
         name: string,
         storageCapacity: string,
-        accessModes: AccessModeTypes[],
+        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
         labels?: Labels,
       ): k8s.V1PersistentVolume => {
         const v = <k8s.V1PersistentVolume>{
@@ -127,20 +173,12 @@ export namespace core {
         return v;
       }
 
-      //
-      // Constructors.
-      //
-
-      export type AccessModeTypes = "ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany";
-
       // TODO:
       //   * mountOptions
       //   * persistentVolumeReclaimPolicy
       //   * storageClassName
 
-      export const makeHostPath = (
-        volumeName: string,
-        storageCapacity: string,
+      export const configureAsHostPathVolume = (
         path: string,
         volumeType?:
             ""
@@ -151,62 +189,79 @@ export namespace core {
           | "Socket"
           | "CharDevice"
           | "BlockDevice",
-        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
-      ): k8s.V1PersistentVolume => {
-        const v = stub(volumeName, storageCapacity, accessModes);
-        v.spec.hostPath = <k8s.V1HostPathVolumeSource>{path: path};
+      ): Transform<k8s.V1PersistentVolume> =>
+        doTransform(v => {
+          v.spec.hostPath = <k8s.V1HostPathVolumeSource>{path: path};
 
-        if (volumeType) {
-          v.spec.hostPath.type = volumeType;
-        }
+          if (volumeType) {
+            v.spec.hostPath.type = volumeType;
+          }
+        });
 
-        return v;
-      }
-
-      export const makeAwsElasticBlockStore = (
-        volumeName: string,
+      export const configureAsAwsElasticBlockStore = (
         blockStoreName: string,
-        storageCapacity: string,
         fsType: string = "ext4",
-        partition?: number,
         readOnly: boolean = false,
-        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
-      ): k8s.V1PersistentVolume => {
-        const v = stub(volumeName, storageCapacity, accessModes);
-        v.spec.awsElasticBlockStore = <k8s.V1AWSElasticBlockStoreVolumeSource>{
-          fsType: fsType,
-          readOnly: readOnly,
-          volumeID: blockStoreName,
-        };
+        partition?: number,
+      ): Transform<k8s.V1PersistentVolume> =>
+        doTransform(v => {
+          v.spec.awsElasticBlockStore = <k8s.V1AWSElasticBlockStoreVolumeSource>{
+            fsType: fsType,
+            readOnly: readOnly,
+            volumeID: blockStoreName,
+          };
 
-        if (partition) {
-          v.spec.awsElasticBlockStore.partition = partition;
-        }
+          if (partition) {
+            v.spec.awsElasticBlockStore.partition = partition;
+          }
+        });
 
-        return v;
-      }
-
-      export const makeGcePersistentDisk = (
-        volumeName: string,
+      export const configureAsGcePersistentDisk = (
         diskName: string,
-        storageCapacity: string,
         fsType: string = "ext4",
         partition?: number,
         readOnly: boolean = false,
-        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
-      ): k8s.V1PersistentVolume => {
-        const v = stub(volumeName, storageCapacity, accessModes);
-        v.spec.gcePersistentDisk = <k8s.V1GCEPersistentDiskVolumeSource>{
-          fsType: fsType,
-          readOnly: readOnly,
-          pdName: diskName,
+      ): Transform<k8s.V1PersistentVolume> =>
+        doTransform(v => {
+          v.spec.gcePersistentDisk = <k8s.V1GCEPersistentDiskVolumeSource>{
+            fsType: fsType,
+            readOnly: readOnly,
+            pdName: diskName,
+          };
+
+          if (partition) {
+            v.spec.gcePersistentDisk.partition = partition;
+          }
+        });
+    }
+
+    export namespace persistentVolumeClaim {
+      //
+      // Constructors.
+      //
+
+      export const make = (
+        claimName: string,
+        storageRequest: string,
+        accessModes: persistentVolume.AccessModeTypes[] = ["ReadWriteOnce"],
+        labels: Labels = {app: claimName}
+      ): k8s.V1PersistentVolumeClaim => {
+        return <k8s.V1PersistentVolumeClaim>{
+          apiVersion: "v1",
+          kind: "PersistentVolumeClaim",
+          metadata: {
+            name: claimName,
+            labels: labels
+          },
+          spec: {
+            accessModes: accessModes,
+            resources: {
+              requests: <{ [key: string]: string; }>{
+                storage: storageRequest,
+              }
+            }
+          }
         };
-
-        if (partition) {
-          v.spec.gcePersistentDisk.partition = partition;
-        }
-
-        return v;
       }
     }
 
@@ -309,6 +364,22 @@ export namespace core {
           )(p.spec);
         }
       }
+
+      export const claimPersistentVolume = (
+        pvClaimName: string,
+        mountPath: string,
+        storageRequest: string,
+        volumeName?: string,
+        readOnly = false,
+        subPath?: string,
+        accessModes: core.v1.persistentVolume.AccessModeTypes[] = ["ReadWriteOnce"],
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1Pod, k8s.V1PersistentVolumeClaim> =>
+        p =>
+          util.v1.podSpec.claimPersistentVolume(
+            pvClaimName, mountPath, storageRequest, volumeName, readOnly,subPath,
+            accessModes, mountFilter
+          )(p.spec);
     }
 
     export namespace service {
@@ -852,7 +923,7 @@ export namespace apps {
         });
       }
 
-      export const setUpdateStrategyReplace = (): Transform<k8s.V1beta2Deployment> => {
+      export const setUpdateStrategyRecreate = (): Transform<k8s.V1beta2Deployment> => {
         return doTransform(d => {
           d.spec.strategy = <k8s.V1beta2DeploymentStrategy>{
             type: "Recreate",
@@ -923,6 +994,22 @@ export namespace apps {
             )(d.spec.template.spec);
           }
         }
+
+        export const claimPersistentVolume = (
+          pvClaimName: string,
+          mountPath: string,
+          storageRequest: string,
+          volumeName?: string,
+          readOnly = false,
+          subPath?: string,
+          accessModes: core.v1.persistentVolume.AccessModeTypes[] = ["ReadWriteOnce"],
+          mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+        ): Transform<k8s.V1beta2Deployment, k8s.V1PersistentVolumeClaim> =>
+          p =>
+            util.v1.podSpec.claimPersistentVolume(
+              pvClaimName, mountPath, storageRequest, volumeName, readOnly, subPath,
+              accessModes, mountFilter,
+            )(p.spec.template.spec);
       }
 
       export const setAppLabels = (labels: Labels): Transform<DeploymentTypes> => {
@@ -1113,7 +1200,6 @@ namespace util {
           mountFilter);
       }
 
-
       export const addConfigData = (
         data: { [key: string]: string },
         mountPath: string,
@@ -1140,6 +1226,38 @@ namespace util {
           )(p);
 
           return core.v1.configMap.make(configMapName, data);
+        }
+      }
+
+      export const claimPersistentVolume = (
+        pvClaimName: string,
+        mountPath: string,
+        storageRequest: string,
+        volumeName?: string,
+        readOnly = false,
+        subPath?: string,
+        accessModes: core.v1.persistentVolume.AccessModeTypes[] = ["ReadWriteOnce"],
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1PodSpec, k8s.V1PersistentVolumeClaim> => {
+        return p => {
+          if (!volumeName) {
+            volumeName = `${pvClaimName}-volume`;
+          }
+
+          p = addVolume(
+            <k8s.V1Volume>{
+              name: volumeName,
+              persistentVolumeClaim: {
+                claimName: pvClaimName,
+              }
+            },
+            mountPath,
+            readOnly,
+            subPath,
+            mountFilter,
+          )(p);
+
+          return core.v1.persistentVolumeClaim.make(pvClaimName, storageRequest, accessModes);
         }
       }
     }
