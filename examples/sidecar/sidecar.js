@@ -11,6 +11,8 @@ const frontendDepl = [
   |> container.toPod("frontend")
   |> pod.deploy(3);
 
-for (const r of [frontendDepl]) {
+const frontendConfigData = frontendDepl |> depl.pod.addConfigData({foo: "bar"}, "/etc/foo")
+
+for (const r of [frontendDepl, frontendConfigData]) {
   console.log(JSON.stringify(r, undefined, "  "));
 }

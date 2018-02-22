@@ -16,7 +16,6 @@ const frontendDepl =
   container.make("frontend", "gcr.io/google-samples/gb-frontend:v4", 80)
   |> merge(_ => addResourcesAndDiscovery)
   |> container.deploy(3)
-  |> depl.pod.appendVolume()
 const frontendSvc = frontendDepl |> depl.exposeWithLoadBalancer(80);
 
 const redisMasterDepl =

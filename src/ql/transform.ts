@@ -1,8 +1,7 @@
-import * as fs from 'fs';
 import * as k8s from '@hausdorff/client-node';
-import * as path from 'path';
 
 export type Transform<TIn, TOut=TIn> = (ti: TIn) => TOut;
+export type Filter<TIn> = (ti: TIn) => boolean;
 
 export const merge = <TIn>(makeRight: (o: TIn) => any): Transform<TIn> => {
   return left => {
@@ -128,8 +127,43 @@ export namespace core {
       }
 
       //
+      // Utilities.
+      //
+
+      export const transformContainers = (
+        t: Transform<k8s.V1Container>,
+        filter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1Pod> => {
+        return doTransform(p => util.v1.podSpec.transformContainers(t, filter)(p.spec));
+      }
+
+      //
       // Verbs.
       //
+
+      export const addVolume = (
+        v: k8s.V1Volume,
+        mountPath: string,
+        readOnly = false,
+        subPath?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1Pod> =>
+        doTransform(p =>
+          util.v1.podSpec.addVolume(
+            v, mountPath, readOnly, subPath, mountFilter
+          )(p.spec));
+
+      export const addMount = (
+        volumeName: string,
+        mountPath: string,
+        readOnly = false,
+        subPath?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1Pod> =>
+        doTransform(p =>
+          util.v1.podSpec.addMount(
+            volumeName, mountPath, readOnly, subPath, mountFilter
+          )(p.spec));
 
       export const deploy = (
         replicas = 1,
@@ -146,6 +180,22 @@ export namespace core {
           }
 
           return apps.v1beta2.deployment.make(deploymentName, appLabels, p, replicas);
+        }
+      }
+
+      export const addConfigData = (
+        data: { [key: string]: string },
+        mountPath: string,
+        configMapName?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1Pod, k8s.V1ConfigMap> => {
+        return p => {
+          if (!configMapName) {
+            configMapName = p.metadata.name;
+          }
+          return util.v1.podSpec.addConfigData(
+            data, mountPath, configMapName, undefined, mountFilter,
+          )(p.spec);
         }
       }
     }
@@ -554,24 +604,52 @@ export namespace apps {
       }
 
       export namespace pod {
-        export const appendVolume = (v: k8s.V1Volume): Transform<DeploymentTypes> => {
-          return doTransform(d => {
-            d.spec.template.spec.volumes = d.spec.template.spec.volumes || [];
-            d.spec.template.spec.volumes.push(v);
-          });
+        export const transformContainers = (
+          f: Transform<k8s.V1Container>,
+          filter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+        ): Transform<DeploymentTypes> => {
+          return doTransform(d =>
+            util.v1.podSpec.transformContainers(f, filter)(d.spec.template.spec));
         }
 
-        export const mapContainers = (
-          f: (c: k8s.V1Container) => void,
-          filter = (_: k8s.V1Container) => true,
-        ): Transform<DeploymentTypes> => {
-          return doTransform(d => {
-            for (const c of d.spec.template.spec.containers) {
-              if (filter(c)) {
-                f(c);
-              }
+        export const addVolume = (
+          v: k8s.V1Volume,
+          mountPath: string,
+          readOnly = false,
+          subPath?: string,
+          mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+        ): Transform<k8s.V1beta2Deployment> =>
+          doTransform(p =>
+            util.v1.podSpec.addVolume(
+              v, mountPath, readOnly, subPath, mountFilter
+            )(p.spec.template.spec));
+
+        export const addMount = (
+          volumeName: string,
+          mountPath: string,
+          readOnly = false,
+          subPath?: string,
+          mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+        ): Transform<k8s.V1beta2Deployment> =>
+          doTransform(p =>
+            util.v1.podSpec.addMount(
+              volumeName, mountPath, readOnly, subPath, mountFilter
+            )(p.spec.template.spec));
+
+        export const addConfigData = (
+          data: { [key: string]: string },
+          mountPath: string,
+          configMapName?: string,
+          mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+        ): Transform<DeploymentTypes, k8s.V1ConfigMap> => {
+          return d => {
+            if (!configMapName) {
+              configMapName = d.metadata.name;
             }
-          });
+            return util.v1.podSpec.addConfigData(
+              data, mountPath, configMapName, undefined, mountFilter,
+            )(d.spec.template.spec);
+          }
         }
       }
 
@@ -631,48 +709,6 @@ export namespace apps {
           );
 
           return svc;
-        }
-      }
-
-      export const addJsonConfigFile = (
-        filePath: string,
-        mountPath: string,
-        configMapName?: string,
-        containerFilter = (_: k8s.V1Container) => true,
-      ): Transform<DeploymentTypes, k8s.V1ConfigMap> => {
-        return d => {
-          let data: any = {};
-          if (path.extname(filePath) === ".json") {
-            data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-          } else {
-            throw new Error(`ConfigMap can't be made from non-JSON file '${filePath}'`);
-          }
-
-          let configMapVolumeName = configMapName;
-          if (!configMapName) {
-            const deploymentName = d.metadata.name;
-            configMapName = deploymentName;
-            configMapVolumeName = `${deploymentName}-configMap`;
-          }
-
-          pod.mapContainers(
-            c => {
-              c.volumeMounts = c.volumeMounts || [];
-              c.volumeMounts.push(<k8s.V1VolumeMount>{
-                name: configMapVolumeName,
-                mountPath: mountPath,
-              })
-            },
-            containerFilter
-          )(d);
-          pod.appendVolume(<k8s.V1Volume>{
-            name: configMapVolumeName,
-            configMap: {
-              name: configMapName,
-            },
-          })(d);
-
-          return core.v1.configMap.make(configMapName, data);
         }
       }
     }
@@ -736,6 +772,103 @@ namespace util {
           m.labels
             ? Object.assign(m.labels, labels)
             : m.labels = labels);
+      }
+    }
+
+    export namespace podSpec {
+      //
+      // Utilities.
+      //
+
+      export const transformContainers = (
+        t: Transform<k8s.V1Container>,
+        filter: (c: k8s.V1Container) => boolean,
+      ): Transform<k8s.V1PodSpec> => {
+        return doTransform(spec => {
+          const cs = [];
+          for (const c of spec.containers) {
+            if (filter(c)) {
+              cs.push(t(c));
+            } else {
+              cs.push(c);
+            }
+          }
+
+          spec.containers = cs;
+        });
+      }
+
+      //
+      // Verbs.
+      //
+
+      export const addVolume = (
+        v: k8s.V1Volume,
+        mountPath: string,
+        readOnly = false,
+        subPath?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1PodSpec> => {
+        return doTransform(
+          doTransform<k8s.V1PodSpec>(p => {
+            p.volumes = p.volumes || [];
+            p.volumes.push(v);
+          }),
+          addMount(v.name, mountPath, readOnly, subPath, mountFilter),
+        );
+      }
+
+      export const addMount = (
+        volumeName: string,
+        mountPath: string,
+        readOnly = false,
+        subPath?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1PodSpec> => {
+        const mount = <k8s.V1VolumeMount>{
+          name: volumeName,
+          mountPath: mountPath,
+          readOnly: readOnly,
+        };
+        if (subPath) {
+          mount.subPath = subPath;
+        }
+        return transformContainers(
+          doTransform(c => {
+            c.volumeMounts = c.volumeMounts || [];
+            c.volumeMounts.push(mount);
+          }),
+          mountFilter);
+      }
+
+
+      export const addConfigData = (
+        data: { [key: string]: string },
+        mountPath: string,
+        configMapName: string,
+        configMapVolumeName?: string,
+        mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
+      ): Transform<k8s.V1PodSpec, k8s.V1ConfigMap> => {
+        return p => {
+          if (!configMapVolumeName) {
+            configMapVolumeName = configMapName;
+          }
+
+          p = addVolume(
+            <k8s.V1Volume>{
+              name: configMapVolumeName,
+              configMap: {
+                name: configMapName,
+              },
+            },
+            mountPath,
+            true,
+            undefined,
+            mountFilter,
+          )(p);
+
+          return core.v1.configMap.make(configMapName, data);
+        }
       }
     }
 
