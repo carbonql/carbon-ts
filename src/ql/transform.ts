@@ -99,6 +99,117 @@ export namespace core {
       }
     }
 
+    export namespace persistentVolume {
+      const stub = (
+        name: string,
+        storageCapacity: string,
+        accessModes: AccessModeTypes[],
+        labels?: Labels,
+      ): k8s.V1PersistentVolume => {
+        const v = <k8s.V1PersistentVolume>{
+          apiVersion: "v1",
+          kind: "PersistentVolume",
+          metadata: {
+            name: name,
+          },
+          spec: {
+            accessModes: accessModes,
+            capacity: <{ [key: string]: string; }>{
+              storage: storageCapacity,
+            },
+          }
+        };
+
+        if (labels) {
+          v.metadata.labels = labels;
+        }
+
+        return v;
+      }
+
+      //
+      // Constructors.
+      //
+
+      export type AccessModeTypes = "ReadWriteOnce" | "ReadOnlyMany" | "ReadWriteMany";
+
+      // TODO:
+      //   * mountOptions
+      //   * persistentVolumeReclaimPolicy
+      //   * storageClassName
+
+      export const makeHostPath = (
+        volumeName: string,
+        storageCapacity: string,
+        path: string,
+        volumeType?:
+            ""
+          | "DirectoryOrCreate"
+          | "Directory"
+          | "FileOrCreate"
+          | "File"
+          | "Socket"
+          | "CharDevice"
+          | "BlockDevice",
+        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
+      ): k8s.V1PersistentVolume => {
+        const v = stub(volumeName, storageCapacity, accessModes);
+        v.spec.hostPath = <k8s.V1HostPathVolumeSource>{path: path};
+
+        if (volumeType) {
+          v.spec.hostPath.type = volumeType;
+        }
+
+        return v;
+      }
+
+      export const makeAwsElasticBlockStore = (
+        volumeName: string,
+        blockStoreName: string,
+        storageCapacity: string,
+        fsType: string = "ext4",
+        partition?: number,
+        readOnly: boolean = false,
+        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
+      ): k8s.V1PersistentVolume => {
+        const v = stub(volumeName, storageCapacity, accessModes);
+        v.spec.awsElasticBlockStore = <k8s.V1AWSElasticBlockStoreVolumeSource>{
+          fsType: fsType,
+          readOnly: readOnly,
+          volumeID: blockStoreName,
+        };
+
+        if (partition) {
+          v.spec.awsElasticBlockStore.partition = partition;
+        }
+
+        return v;
+      }
+
+      export const makeGcePersistentDisk = (
+        volumeName: string,
+        diskName: string,
+        storageCapacity: string,
+        fsType: string = "ext4",
+        partition?: number,
+        readOnly: boolean = false,
+        accessModes: AccessModeTypes[] = ["ReadWriteOnce"],
+      ): k8s.V1PersistentVolume => {
+        const v = stub(volumeName, storageCapacity, accessModes);
+        v.spec.gcePersistentDisk = <k8s.V1GCEPersistentDiskVolumeSource>{
+          fsType: fsType,
+          readOnly: readOnly,
+          pdName: diskName,
+        };
+
+        if (partition) {
+          v.spec.gcePersistentDisk.partition = partition;
+        }
+
+        return v;
+      }
+    }
+
     export namespace pod {
       //
       // Constructors.
@@ -113,7 +224,7 @@ export namespace core {
           containers = [containers];
         }
 
-        return <k8s.V1Pod><object>{
+        return <k8s.V1Pod>{
           apiVersion: "v1",
           kind: "Pod",
           metadata: {
@@ -205,7 +316,7 @@ export namespace core {
         name: string,
         labels?: Labels,
       ): k8s.V1Service => {
-        const svc = <k8s.V1Service><object>{
+        const svc = <k8s.V1Service>{
           "kind": "Service",
           "apiVersion": "v1",
           "metadata": {
@@ -818,7 +929,7 @@ export namespace apps {
         return doTransform(
           d => util.v1.metadata.setLabels(labels)(d.metadata),
           d => d.spec.template.metadata.labels = labels,
-          d => d.spec.selector = <k8s.V1LabelSelector><object>{matchLabels: labels});
+          d => d.spec.selector = <k8s.V1LabelSelector>{matchLabels: labels});
       }
 
       //
