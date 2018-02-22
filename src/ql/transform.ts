@@ -510,6 +510,167 @@ export namespace core {
         });
       }
     }
+
+    export namespace volume {
+      export const makeConfigMap = (
+        configMapName: string,
+        volumeName?: string,
+        defaultPermissions = 0o644,
+        filesToInclude?: k8s.V1KeyToPath[],
+        optional: boolean = false,
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName ? volumeName : `${configMapName}-volume`,
+          configMap: {
+            name: configMapName,
+            defaultMode: defaultPermissions,
+          },
+        };
+
+        if (filesToInclude) {
+          v.configMap.items = filesToInclude;
+        }
+
+        if (optional) {
+          v.configMap.optional = optional;
+        }
+
+        return v;
+      }
+
+      // export const makeDownwardApi = (
+      //   volumeName: string,
+      //   defaultPermissions = 0o644,
+      // ): k8s.V1Volume => {
+      //   return <k8s.V1Volume>{
+      //     name: volumeName,
+      //     downwardAPI: {
+      //       defaultMode: defaultPermissions,
+      //     },
+      //   };
+      // }
+
+      export const makeEmptyDir = (
+        volumeName: string,
+        storageMedium?: "" | "Memory",
+        sizeLimit?: string,
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName,
+          emptyDir: {},
+        };
+        if (storageMedium) {
+          v.emptyDir.medium = storageMedium;
+        }
+
+        if (sizeLimit) {
+          v.emptyDir.sizeLimit = sizeLimit;
+        }
+
+        return v;
+      }
+
+      export const makeGitRepo = (
+        volumeName: string,
+        repository: string,
+        revision: string,
+        directory?: string,
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName,
+          gitRepo: {
+            repository: repository,
+            revision: revision,
+          },
+        };
+        if (directory) {
+          v.gitRepo.directory = directory;
+        }
+
+        return v;
+      }
+
+      export const makeHostPath = (
+        volumeName: string,
+        path: string,
+        type?:
+            ""
+          | "DirectoryOrCreate"
+          | "Directory"
+          | "FileOrCreate"
+          | "File"
+          | "Socket"
+          | "CharDevice"
+          | "BlockDevice",
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName,
+          hostPath: {
+            path: path,
+          },
+        };
+
+        if (type) {
+          v.hostPath.type = type;
+        }
+
+        return v;
+      }
+
+      export const makePersistentVolumeClaim = (
+        claimName: string,
+        volumeName?: string,
+        readOnly?: boolean
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName ? volumeName : `${claimName}-volume`,
+          persistentVolumeClaim: {
+            claimName: claimName,
+          },
+        };
+
+        if (readOnly) {
+          v.persistentVolumeClaim.readOnly = readOnly;
+        }
+
+        return v;
+      }
+
+      // export const makeProjected = (
+      //   volumeName: string,
+      // ): k8s.V1Volume => {
+      //   return <k8s.V1Volume>{
+      //     name: volumeName,
+      //     projected: {},
+      //   };
+      // }
+
+      export const makeSecret = (
+        secretName: string,
+        volumeName?: string,
+        defaultPermissions = 0o644,
+        keysToInclude?: k8s.V1KeyToPath[],
+        optional: boolean = false,
+      ): k8s.V1Volume => {
+        const v = <k8s.V1Volume>{
+          name: volumeName ? volumeName : `${secretName}-volume`,
+          secret: {
+            secretName: secretName,
+            defaultMode: defaultPermissions,
+          },
+        };
+
+        if (keysToInclude) {
+          v.configMap.items = keysToInclude;
+        }
+
+        if (optional) {
+          v.configMap.optional = optional;
+        }
+
+        return v;
+      }
+    }
   }
 }
 
