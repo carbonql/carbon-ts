@@ -366,7 +366,7 @@ export namespace core {
       }
 
       export const claimPersistentVolume = (
-        pvClaimName: string,
+        pvClaim: string | k8s.V1PersistentVolume,
         mountPath: string,
         storageRequest: string,
         volumeName?: string,
@@ -377,7 +377,7 @@ export namespace core {
       ): Transform<k8s.V1Pod, k8s.V1PersistentVolumeClaim> =>
         p =>
           util.v1.podSpec.claimPersistentVolume(
-            pvClaimName, mountPath, storageRequest, volumeName, readOnly,subPath,
+            pvClaim, mountPath, storageRequest, volumeName, readOnly,subPath,
             accessModes, mountFilter
           )(p.spec);
     }
@@ -996,7 +996,7 @@ export namespace apps {
         }
 
         export const claimPersistentVolume = (
-          pvClaimName: string,
+          pvClaim: string | k8s.V1PersistentVolume,
           mountPath: string,
           storageRequest: string,
           volumeName?: string,
@@ -1007,7 +1007,7 @@ export namespace apps {
         ): Transform<k8s.V1beta2Deployment, k8s.V1PersistentVolumeClaim> =>
           p =>
             util.v1.podSpec.claimPersistentVolume(
-              pvClaimName, mountPath, storageRequest, volumeName, readOnly, subPath,
+              pvClaim, mountPath, storageRequest, volumeName, readOnly, subPath,
               accessModes, mountFilter,
             )(p.spec.template.spec);
       }
@@ -1230,7 +1230,7 @@ namespace util {
       }
 
       export const claimPersistentVolume = (
-        pvClaimName: string,
+        pvClaim: string | k8s.V1PersistentVolume,
         mountPath: string,
         storageRequest: string,
         volumeName?: string,
@@ -1240,6 +1240,11 @@ namespace util {
         mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
       ): Transform<k8s.V1PodSpec, k8s.V1PersistentVolumeClaim> => {
         return p => {
+          const pvClaimName =
+            typeof pvClaim === 'string' || pvClaim instanceof String
+            ? <string>pvClaim
+            : pvClaim.metadata.name;
+
           if (!volumeName) {
             volumeName = `${pvClaimName}-volume`;
           }
