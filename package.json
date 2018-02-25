@@ -32,7 +32,7 @@
     "@types/request": "^2.47.0",
     "babel-core": "^6.26.0",
     "kubernetes-client": "^3.18.1",
-    "linqts": "^1.10.0",
+    "linq": "^3.0.9",
     "request": "^2.83.0"
   }
 }
