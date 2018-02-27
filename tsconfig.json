@@ -3,16 +3,19 @@
     "target": "es6",
     "module": "commonjs",
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
+    // "skipDefaultLibCheck": true,
     "allowJs": true,
     "outDir": "build",
     "sourceMap": true,
+
+    // NOTE: Turning this on in TS 2.7.1 will cause type checking to start
+    // failing in vscode.
+    // "noUnusedLocals": true,
 
     // Compiler strictness settings.
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
