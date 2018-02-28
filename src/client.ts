@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as k8s from '@hausdorff/client-node';
 import * as path from "path";
 import * as http from "http";
-import * as linq from 'linq';
 import * as rx from "rxjs/Rx";
 import * as promise from "bluebird";
 
@@ -76,6 +75,21 @@ export class Client {
       client: () =>
         <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
 
+      pod: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedPod(namespace)
+              : this.core.v1.client().listPodForAllNamespaces()
+          );
+        },
+
+        logs: (name: string, namespace: string, container?: string) => {
+          return objAsObservable(
+            this.core.v1.client().readNamespacedPodLog(name, namespace, container));
+        }
+      },
+
       service: {
         list: (namespace?: string) => {
           return listAsObservable(
@@ -107,7 +121,8 @@ export class Client {
 }
 
 type Listable<T> = {items: T[]}
-type ApiResponse<T> = {response: http.ClientResponse; body: Listable<T>;};
+type ApiResponseObj<T> = {response: http.ClientResponse; body: T;};
+type ApiResponseList<T> = {response: http.ClientResponse; body: Listable<T>;};
 
 const fromKubeConfig = (
   kc: k8s.KubeConfig, create: any,
@@ -119,11 +134,21 @@ const fromKubeConfig = (
 }
 
 const listAsObservable = <T>(
-  p: promise<ApiResponse<T>>
+  p: promise<ApiResponseList<T>>
 ) => {
   return rx.Observable
-  .fromPromise(p)
-  .flatMap(res => res.body.items);
+    .fromPromise(p)
+    .flatMap(res => res.body.items);
+}
+
+const objAsObservable = <T>(
+  p: promise<ApiResponseObj<T>>
+) => {
+  return rx.Observable
+    .fromPromise(p)
+    .map(res => {
+      return res.body;
+    });
 }
 
 export namespace kubeconfig {
