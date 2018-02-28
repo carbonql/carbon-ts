@@ -1,6 +1,6 @@
 export * from './ql/transform';
 
-import * as query from 'linq';
+import * as query from 'rxjs/Rx';
 export {query};
 
 import * as client from './client';
