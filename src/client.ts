@@ -75,6 +75,21 @@ export class Client {
       client: () =>
         <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
 
+      event: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedEvent(namespace)
+              : this.core.v1.client().listEventForAllNamespaces());
+        }
+      },
+
+      node: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listNode());
+        }
+      },
+
       pod: {
         list: (namespace?: string) => {
           return listAsObservable(
