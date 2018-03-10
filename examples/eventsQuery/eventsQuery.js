@@ -17,7 +17,7 @@ const c = client.Client.fromFile(process.env.KUBECONFIG);
 //   .filter(e => e.type === "Warning")
 //   .subscribe(console.log);
 
-c.core.v1.node.list()
+c.core.v1.Node.list()
   .filter(n => {
     const pressure =
       n.status.conditions.filter(c => c.type === "MemoryPressure" && c.status === "False");

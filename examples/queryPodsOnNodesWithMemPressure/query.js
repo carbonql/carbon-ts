@@ -6,7 +6,7 @@ import * as k8s from '@hausdorff/client-node';
 //
 
 const c = client.Client.fromFile(process.env.KUBECONFIG);
-c.core.v1.pod.list()
+c.core.v1.Pod.list()
   // Make pods a set by name.
   .reduce(
     (podAcc, pod) => {
@@ -16,7 +16,7 @@ c.core.v1.pod.list()
     {})
   .subscribe(pods => {
     // Find nodes with `MemoryPressure` set to "True".
-    c.core.v1.node.list()
+    c.core.v1.Node.list()
       .filter(n => {
         const pressure = n.status.conditions
           .filter(c => c.type === "MemoryPressure" && c.status === "True");

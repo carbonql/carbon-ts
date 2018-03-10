@@ -5,31 +5,6 @@ import * as http from "http";
 import * as rx from "rxjs/Rx";
 import * as promise from "bluebird";
 
-export type ClientTypes =
-    k8s.Apps_v1beta1Api
-  | k8s.Apps_v1beta2Api
-  | k8s.Authentication_v1Api
-  | k8s.Authentication_v1beta1Api
-  | k8s.Authorization_v1Api
-  | k8s.Authorization_v1beta1Api
-  | k8s.Autoscaling_v1Api
-  | k8s.Autoscaling_v2beta1Api
-  | k8s.Batch_v1Api
-  | k8s.Batch_v1beta1Api
-  | k8s.Batch_v2alpha1Api
-  | k8s.Certificates_v1beta1Api
-  | k8s.Core_v1Api
-  | k8s.Extensions_v1beta1Api
-  | k8s.Networking_v1Api
-  | k8s.Policy_v1beta1Api
-  | k8s.RbacAuthorization_v1Api
-  | k8s.RbacAuthorization_v1alpha1Api
-  | k8s.Scheduling_v1alpha1Api
-  | k8s.Settings_v1alpha1Api
-  | k8s.Storage_v1Api
-  | k8s.Storage_v1beta1Api
-  ;
-
 export class Client {
   public static fromFile = (filename: string): Client => {
     const kc = kubeconfig.fromFile(filename);
@@ -38,12 +13,159 @@ export class Client {
 
   private constructor(private _kc: k8s.KubeConfig) { }
 
+  public core = {
+    v1: {
+      client: () =>
+        <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
+
+      ConfigMap: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedConfigMap(namespace)
+              : this.core.v1.client().listConfigMapForAllNamespaces()
+          );
+        },
+      },
+      Endpoints: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedEndpoints(namespace)
+              : this.core.v1.client().listEndpointsForAllNamespaces()
+          );
+        },
+      },
+      Event: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedEvent(namespace)
+              : this.core.v1.client().listEventForAllNamespaces()
+          );
+        },
+      },
+      LimitRange: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedLimitRange(namespace)
+              : this.core.v1.client().listLimitRangeForAllNamespaces()
+          );
+        },
+      },
+      PersistentVolumeClaim: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedPersistentVolumeClaim(namespace)
+              : this.core.v1.client().listPersistentVolumeClaimForAllNamespaces()
+          );
+        },
+      },
+      Pod: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedPod(namespace)
+              : this.core.v1.client().listPodForAllNamespaces()
+          );
+        },
+      },
+      PodTemplate: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedPodTemplate(namespace)
+              : this.core.v1.client().listPodTemplateForAllNamespaces()
+          );
+        },
+      },
+      ReplicationController: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedReplicationController(namespace)
+              : this.core.v1.client().listReplicationControllerForAllNamespaces()
+          );
+        },
+      },
+      ResourceQuota: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedResourceQuota(namespace)
+              : this.core.v1.client().listResourceQuotaForAllNamespaces()
+          );
+        },
+      },
+      Secret: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedSecret(namespace)
+              : this.core.v1.client().listSecretForAllNamespaces()
+          );
+        },
+      },
+      ServiceAccount: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedServiceAccount(namespace)
+              : this.core.v1.client().listServiceAccountForAllNamespaces()
+          );
+        },
+      },
+      Service: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.core.v1.client().listNamespacedService(namespace)
+              : this.core.v1.client().listServiceForAllNamespaces()
+          );
+        },
+      },
+
+      ComponentStatus: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listComponentStatus());
+        }
+      },
+      Namespace: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listNamespace());
+        }
+      },
+      Node: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listNode());
+        }
+      },
+      PersistentVolume: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listPersistentVolume());
+        }
+      },
+
+    },
+
+  };
   public apps = {
     v1beta1: {
       client: () =>
         <k8s.Apps_v1beta1Api>fromKubeConfig(this._kc, k8s.Apps_v1beta1Api),
 
-      deployment: {
+      ControllerRevision: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.apps.v1beta1.client().listNamespacedControllerRevision(namespace)
+              : this.apps.v1beta1.client().listControllerRevisionForAllNamespaces()
+          );
+        },
+      },
+      Deployment: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
@@ -52,77 +174,89 @@ export class Client {
           );
         },
       },
-    },
-
-    v1beta2: {
-      client: () =>
-        <k8s.Apps_v1beta2Api>fromKubeConfig(this._kc, k8s.Apps_v1beta2Api),
-
-      deployment: {
+      StatefulSet: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.apps.v1beta2.client().listNamespacedDeployment(namespace)
-              : this.apps.v1beta2.client().listDeploymentForAllNamespaces()
+              ? this.apps.v1beta1.client().listNamespacedStatefulSet(namespace)
+              : this.apps.v1beta1.client().listStatefulSetForAllNamespaces()
           );
         },
       },
-    },
-  };
 
-  public core = {
+
+    },
+
+  };
+  public autoscaling = {
     v1: {
       client: () =>
-        <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
+        <k8s.Autoscaling_v1Api>fromKubeConfig(this._kc, k8s.Autoscaling_v1Api),
 
-      event: {
+      HorizontalPodAutoscaler: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedEvent(namespace)
-              : this.core.v1.client().listEventForAllNamespaces());
-        }
-      },
-
-      node: {
-        list: () => {
-          return listAsObservable(this.core.v1.client().listNode());
-        }
-      },
-
-      pod: {
-        list: (namespace?: string) => {
-          return listAsObservable(
-            namespace
-              ? this.core.v1.client().listNamespacedPod(namespace)
-              : this.core.v1.client().listPodForAllNamespaces()
+              ? this.autoscaling.v1.client().listNamespacedHorizontalPodAutoscaler(namespace)
+              : this.autoscaling.v1.client().listHorizontalPodAutoscalerForAllNamespaces()
           );
         },
-
-        logs: (name: string, namespace: string, container?: string) => {
-          return objAsObservable(
-            this.core.v1.client().readNamespacedPodLog(name, namespace, container));
-        }
       },
 
-      service: {
-        list: (namespace?: string) => {
-          return listAsObservable(
-            namespace
-              ? this.core.v1.client().listNamespacedService(namespace)
-              : this.core.v1.client().listServiceForAllNamespaces()
-          );
-        },
-      }
+
     },
-  }
 
+  };
+  public batch = {
+    v1: {
+      client: () =>
+        <k8s.Batch_v1Api>fromKubeConfig(this._kc, k8s.Batch_v1Api),
+
+      Job: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.batch.v1.client().listNamespacedJob(namespace)
+              : this.batch.v1.client().listJobForAllNamespaces()
+          );
+        },
+      },
+
+
+    },
+    v2alpha1: {
+      client: () =>
+        <k8s.Batch_v2alpha1Api>fromKubeConfig(this._kc, k8s.Batch_v2alpha1Api),
+
+      CronJob: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.batch.v2alpha1.client().listNamespacedCronJob(namespace)
+              : this.batch.v2alpha1.client().listCronJobForAllNamespaces()
+          );
+        },
+      },
+
+
+    },
+
+  };
   public extensions = {
     v1beta1: {
       client: () =>
         <k8s.Extensions_v1beta1Api>fromKubeConfig(this._kc, k8s.Extensions_v1beta1Api),
 
-      deployment: {
+      DaemonSet: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.extensions.v1beta1.client().listNamespacedDaemonSet(namespace)
+              : this.extensions.v1beta1.client().listDaemonSetForAllNamespaces()
+          );
+        },
+      },
+      Deployment: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
@@ -131,8 +265,56 @@ export class Client {
           );
         },
       },
+      Ingress: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.extensions.v1beta1.client().listNamespacedIngress(namespace)
+              : this.extensions.v1beta1.client().listIngressForAllNamespaces()
+          );
+        },
+      },
+      NetworkPolicy: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.extensions.v1beta1.client().listNamespacedNetworkPolicy(namespace)
+              : this.extensions.v1beta1.client().listNetworkPolicyForAllNamespaces()
+          );
+        },
+      },
+      ReplicaSet: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.extensions.v1beta1.client().listNamespacedReplicaSet(namespace)
+              : this.extensions.v1beta1.client().listReplicaSetForAllNamespaces()
+          );
+        },
+      },
+
     },
-  }
+
+  };
+  public policy = {
+    v1beta1: {
+      client: () =>
+        <k8s.Policy_v1beta1Api>fromKubeConfig(this._kc, k8s.Policy_v1beta1Api),
+
+      PodDisruptionBudget: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.policy.v1beta1.client().listNamespacedPodDisruptionBudget(namespace)
+              : this.policy.v1beta1.client().listPodDisruptionBudgetForAllNamespaces()
+          );
+        },
+      },
+
+
+    },
+
+  };
 }
 
 type Listable<T> = {items: T[]}
@@ -216,3 +398,4 @@ export namespace kubeconfig {
       // }
   }
 }
+
