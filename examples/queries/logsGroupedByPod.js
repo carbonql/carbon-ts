@@ -13,18 +13,16 @@ import {client} from "../../src";
 //
 
 const c = client.Client.fromFile(process.env.KUBECONFIG);
-c.core.v1.pod
+c.core.v1.Pod
   // Get all pods.
   .list("default")
   // Retrieve logs for all pods, keeping the name as we do it.
-  .flatMap(pod => {
-    const meta = pod.metadata;
-    return c.core.v1.pod
-      .logs(meta.name, meta.namespace)
+  .flatMap(pod =>
+    c.core.v1.Pod
+      .logs(pod.metadata.name, pod.metadata.namespace)
       .map(logs => {
-        return {name: meta.name, logs}
-      });
-  })
+        return {name: pod.metadata.name, logs}
+      }))
   // Group logs by name, but returns only the `logs` member.
   .groupBy(
     ({name}) => name,
