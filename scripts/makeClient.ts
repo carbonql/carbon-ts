@@ -37,6 +37,61 @@ const ucfirst = (s: string): string => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+const addNsList = (
+  methods: MethodConfig[], group: string, version: string, kind: string,
+  operations: linq.IEnumerable<string>,
+) => {
+  // Find out if we need to create namespaced/non-namespaced list
+  // method.
+  const isNsList = operations
+    .where(op => {
+      return op.endsWith(`Namespaced${kind}`) || op.endsWith(`${kind}ForAllNamespaces`)
+    })
+    .count() == 2;
+
+  if (isNsList) {
+    methods.push({
+      name: "list",
+      paramsText: "namespace?: string",
+      body: `return listAsObservable(
+            namespace
+              ? this.${group}.${version}.client().listNamespaced${kind}(namespace)
+              : this.${group}.${version}.client().list${kind}ForAllNamespaces()
+          );`
+    });
+  }
+}
+
+const addNonNsList = (
+  methods: MethodConfig[], group: string, version: string, kind: string,
+  operations: linq.IEnumerable<string>,
+) => {
+  const isNonNsList = operations
+    .where(op => op == `list${ucfirst(group)}${ucfirst(version)}${ucfirst(kind)}`)
+    .count() == 1;
+
+  if (isNonNsList) {
+    methods.push({
+      name: "list",
+      paramsText: "",
+      body: `return listAsObservable(this.${group}.${version}.client().list${kind}());`,
+    });
+  }
+}
+
+const addLogsMethods = (
+  methods: MethodConfig[], group: string, version: string, kind: string,
+) => {
+  // Add a method for logs if the GVK is for Pod.
+  if (group == "core" && version == "v1" && kind == "Pod") {
+    methods.push({
+      name: "logsFromMeta",
+      paramsText: "name: string, namespace: string, container?: string",
+      body: `return objAsObservable(this.${group}.${version}.client().readNamespacedPodLog(name, namespace, container))`,
+    });
+  }
+}
+
 //
 // Fill in Mustache template.
 //
@@ -82,46 +137,9 @@ const groups: GroupConfig[] = linq
             const operations = endpoints.select(e => <string>e[operationId]);
             const methods: MethodConfig[] = [];
 
-            // Find out if we need to create namespaced/non-namespaced list
-            // method.
-            const isNsList = operations
-              .where(op => {
-                return op.endsWith(`Namespaced${kind}`) || op.endsWith(`${kind}ForAllNamespaces`)
-              })
-              .count() == 2;
-
-            if (isNsList) {
-              methods.push({
-                name: "list",
-                paramsText: "namespace?: string",
-                body: `return listAsObservable(
-            namespace
-              ? this.${group}.${version}.client().listNamespaced${kind}(namespace)
-              : this.${group}.${version}.client().list${kind}ForAllNamespaces()
-          );`
-              })
-            }
-
-            const isNonNsList = operations
-              .where(op => op == `list${ucfirst(group)}${ucfirst(version)}${ucfirst(kind)}`)
-              .count() == 1;
-
-            if (isNonNsList) {
-              methods.push({
-                name: "list",
-                paramsText: "",
-                body: `return listAsObservable(this.${group}.${version}.client().list${kind}());`,
-              })
-            }
-
-            // Add a method for logs if the GVK is for Pod.
-            if (group == "core" && version == "v1" && kind == "Pod") {
-              methods.push({
-                name: "logs",
-                paramsText: "name: string, namespace: string, container?: string",
-                body: `return objAsObservable(this.${group}.${version}.client().readNamespacedPodLog(name, namespace, container))`,
-              })
-            }
+            addNsList(methods, group, version, kind, operations);
+            addNonNsList(methods, group, version, kind, operations);
+            addLogsMethods(methods, group, version, kind);
 
             return {
               kind: kind,
