@@ -81,6 +81,9 @@ export class Client {
               : this.core.v1.client().listPodForAllNamespaces()
           );
         },
+        logs: (name: string, namespace: string, container?: string) => {
+          return objAsObservable(this.core.v1.client().readNamespacedPodLog(name, namespace, container))
+        },
       },
       PodTemplate: {
         list: (namespace?: string) => {

@@ -24,7 +24,7 @@ export class Client {
       {{kind}}: {
         {{#methods}}
         {{name}}: ({{paramsText}}) => {
-          return listAsObservable({{observableListText}});
+          {{body}}
         },
         {{/methods}}
       },

@@ -30,7 +30,7 @@ interface KindConfig {
 interface MethodConfig {
   readonly name: string
   readonly paramsText: string
-  readonly observableListText: string
+  readonly body: string
 }
 
 const ucfirst = (s: string): string => {
@@ -94,11 +94,11 @@ const groups: GroupConfig[] = linq
               methods.push({
                 name: "list",
                 paramsText: "namespace?: string",
-                observableListText: `
+                body: `return listAsObservable(
             namespace
               ? this.${group}.${version}.client().listNamespaced${kind}(namespace)
               : this.${group}.${version}.client().list${kind}ForAllNamespaces()
-          `
+          );`
               })
             }
 
@@ -110,7 +110,16 @@ const groups: GroupConfig[] = linq
               methods.push({
                 name: "list",
                 paramsText: "",
-                observableListText: `this.${group}.${version}.client().list${kind}()`,
+                body: `return listAsObservable(this.${group}.${version}.client().list${kind}());`,
+              })
+            }
+
+            // Add a method for logs if the GVK is for Pod.
+            if (group == "core" && version == "v1" && kind == "Pod") {
+              methods.push({
+                name: "logs",
+                paramsText: "name: string, namespace: string, container?: string",
+                body: `return objAsObservable(this.${group}.${version}.client().readNamespacedPodLog(name, namespace, container))`,
               })
             }
 
