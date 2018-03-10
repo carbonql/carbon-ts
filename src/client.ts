@@ -18,6 +18,11 @@ export class Client {
       client: () =>
         <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
 
+      ComponentStatus: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listComponentStatus());
+        },
+      },
       ConfigMap: {
         list: (namespace?: string) => {
           return listAsObservable(
@@ -52,6 +57,11 @@ export class Client {
               ? this.core.v1.client().listNamespacedLimitRange(namespace)
               : this.core.v1.client().listLimitRangeForAllNamespaces()
           );
+        },
+      },
+      Namespace: {
+        list: () => {
+          return listAsObservable(this.core.v1.client().listNamespace());
         },
       },
       PersistentVolumeClaim: {
@@ -126,26 +136,15 @@ export class Client {
           );
         },
       },
-
-      ComponentStatus: {
-        list: () => {
-          return listAsObservable(this.core.v1.client().listComponentStatus());
-        }
-      },
-      Namespace: {
-        list: () => {
-          return listAsObservable(this.core.v1.client().listNamespace());
-        }
-      },
       Node: {
         list: () => {
           return listAsObservable(this.core.v1.client().listNode());
-        }
+        },
       },
       PersistentVolume: {
         list: () => {
           return listAsObservable(this.core.v1.client().listPersistentVolume());
-        }
+        },
       },
 
     },
@@ -184,7 +183,6 @@ export class Client {
         },
       },
 
-
     },
 
   };
@@ -202,7 +200,6 @@ export class Client {
           );
         },
       },
-
 
     },
 
@@ -222,7 +219,6 @@ export class Client {
         },
       },
 
-
     },
     v2alpha1: {
       client: () =>
@@ -237,7 +233,6 @@ export class Client {
           );
         },
       },
-
 
     },
 
@@ -292,6 +287,11 @@ export class Client {
           );
         },
       },
+      PodSecurityPolicy: {
+        list: () => {
+          return listAsObservable(this.extensions.v1beta1.client().listPodSecurityPolicy());
+        },
+      },
 
     },
 
@@ -310,7 +310,6 @@ export class Client {
           );
         },
       },
-
 
     },
 

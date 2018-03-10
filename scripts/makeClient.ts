@@ -7,12 +7,9 @@ const groupVersionKind = "x-kubernetes-group-version-kind";
 const k8sAction = "x-kubernetes-action";
 const operationId = "operationId";
 
-function ucfirst(s: string)
-{
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-const swagger = JSON.parse(fs.readFileSync(process.argv[2]).toString());
+//
+// Helper interfaces.
+//
 
 interface GroupConfig {
   readonly group: string
@@ -22,14 +19,29 @@ interface GroupConfig {
 interface VersionConfig {
   readonly version: string
   readonly clientName: string
-  readonly namespacedLists: ListConfig[]
-  readonly nonNamespacedLists: ListConfig[]
+  readonly kinds: KindConfig[]
 }
 
-interface ListConfig {
+interface KindConfig {
   readonly kind: string
-  readonly operations: string[]
+  readonly methods: MethodConfig[]
 }
+
+interface MethodConfig {
+  readonly name: string
+  readonly paramsText: string
+  readonly observableListText: string
+}
+
+const ucfirst = (s: string): string => {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+//
+// Fill in Mustache template.
+//
+
+const swagger = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 
 const paths = swagger.paths;
 const groups: GroupConfig[] = linq
@@ -37,7 +49,11 @@ const groups: GroupConfig[] = linq
   .from(Object.keys(paths))
   .select(path => paths[path]["get"])
   .where(get => get != null && get[k8sAction] == "list")
-  .where(get => !(<string>get[groupVersionKind].group).includes(".")) // Temporarily strip out "complex" groups.
+
+  // Temporarily strip out "complex" groups.
+  .where(get => !(<string>get[groupVersionKind].group).includes("."))
+  //
+
   .select(get => {
     // For historical reasons, the group `core` is denoted by the empty string.
     // Add this explicitly.
@@ -57,21 +73,57 @@ const groups: GroupConfig[] = linq
         const version = endpoints.key();
 
         // Group endpoints by kind so we can create a `ListConfig[]`.
-        const lists: linq.IEnumerable<ListConfig> = endpoints
+        const lists: linq.IEnumerable<KindConfig> = endpoints
           .groupBy(endpoint => endpoint[groupVersionKind].kind)
           .select(endpoints => {
             const kind = endpoints.key();
+
+            // Create a list of methods to emit in the mustache template.
+            const operations = endpoints.select(e => <string>e[operationId]);
+            const methods: MethodConfig[] = [];
+
+            // Find out if we need to create namespaced/non-namespaced list
+            // method.
+            const isNsList = operations
+              .where(op => {
+                return op.endsWith(`Namespaced${kind}`) || op.endsWith(`${kind}ForAllNamespaces`)
+              })
+              .count() == 2;
+
+            if (isNsList) {
+              methods.push({
+                name: "list",
+                paramsText: "namespace?: string",
+                observableListText: `
+            namespace
+              ? this.${group}.${version}.client().listNamespaced${kind}(namespace)
+              : this.${group}.${version}.client().list${kind}ForAllNamespaces()
+          `
+              })
+            }
+
+            const isNonNsList = operations
+              .where(op => op == `list${ucfirst(group)}${ucfirst(version)}${ucfirst(kind)}`)
+              .count() == 1;
+
+            if (isNonNsList) {
+              methods.push({
+                name: "list",
+                paramsText: "",
+                observableListText: `this.${group}.${version}.client().list${kind}()`,
+              })
+            }
+
             return {
               kind: kind,
-              operations: endpoints.select(e => e[k8sAction]).toArray(),
+              methods: methods,
             }
           });
 
         return {
           version: version,
           clientName: `k8s.${ucfirst(group)}_${version}Api`,
-          namespacedLists: lists.where(l => l.operations.length == 2).toArray(),
-          nonNamespacedLists: lists.where(l => l.operations.length == 1).toArray(),
+          kinds: lists.toArray(),
         }
       })
       .toArray();

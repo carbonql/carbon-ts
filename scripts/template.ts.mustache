@@ -20,25 +20,15 @@ export class Client {
       client: () =>
         <{{clientName}}>fromKubeConfig(this._kc, {{clientName}}),
 
-      {{#namespacedLists}}
+      {{#kinds}}
       {{kind}}: {
-        list: (namespace?: string) => {
-          return listAsObservable(
-            namespace
-              ? this.{{group}}.{{version}}.client().listNamespaced{{kind}}(namespace)
-              : this.{{group}}.{{version}}.client().list{{kind}}ForAllNamespaces()
-          );
+        {{#methods}}
+        {{name}}: ({{paramsText}}) => {
+          return listAsObservable({{observableListText}});
         },
+        {{/methods}}
       },
-      {{/namespacedLists}}
-
-      {{#nonNamespacedLists}}
-      {{kind}}: {
-        list: () => {
-          return listAsObservable(this.core.v1.client().list{{kind}}());
-        }
-      },
-      {{/nonNamespacedLists}}
+      {{/kinds}}
 
     },
     {{/versions}}
