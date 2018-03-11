@@ -28,6 +28,7 @@
   "include": [
     "./src/**/*",
     "./scripts/**/*",
+    "./examples/**/*.ts",
     "./test/**/*"
   ],
   "exclude": [

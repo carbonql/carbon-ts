@@ -12,7 +12,7 @@ import {client} from "../../src";
 // name of pod they're coming from.
 //
 
-const c = client.Client.fromFile(process.env.KUBECONFIG);
+const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
 c.core.v1.Pod
   // Get all pods.
   .list("default")

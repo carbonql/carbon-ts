@@ -11,11 +11,7 @@ import {client, query} from "../../src";
 // Get a snapshot of events in "default" namespace, filter down to warnings.
 //
 
-const c = client.Client.fromFile(process.env.KUBECONFIG);
-// c.core.v1.event.list("default")
-//   // Filter to warnings.
-//   .filter(e => e.type === "Warning")
-//   .subscribe(console.log);
+const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
 
 c.core.v1.Node.list()
   .filter(n => {
@@ -24,5 +20,4 @@ c.core.v1.Node.list()
     return pressure.length > 1;
   })
   .flatMap(n => n.metadata.name)
-  .subscribe(n => {
-  })
+  .subscribe(_ => {})

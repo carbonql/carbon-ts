@@ -1,14 +1,14 @@
-import {client, query} from "./index";
+import {client, query} from "../../src";
 import * as k8s from '@hausdorff/client-node';
 
 //
 // Retrieve pods running on a node where memory pressure is high.
 //
+const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
 
-const c = client.Client.fromFile(process.env.KUBECONFIG);
 c.core.v1.Pod.list()
   // Make pods a set by name.
-  .reduce(
+  .reduce<k8s.V1Pod, {[key: string]: k8s.V1Pod}>(
     (podAcc, pod) => {
       podAcc[pod.spec.nodeName] = pod
       return podAcc;
