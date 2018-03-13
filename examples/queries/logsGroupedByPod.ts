@@ -6,42 +6,39 @@
 //       service = core.v1.service;
 
 import {client} from "../../src";
+import * as carbon from "../../src";
 
 //
-// Get a snapshot of all logs in the `default` namespace, and then group them by
-// name of pod they're coming from.
+// Get logs in all pods in the `default` namespace, group them according to the
+// pod they belong to.
 //
 
 const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
-c.core.v1.Pod
-  // Get all pods.
+const podLogs = c.core.v1.Pod
   .list("default")
-  // Retrieve logs for all pods, keeping the name as we do it.
+  // Retrieve logs for all pods, filter for logs with `ERROR:`.
   .flatMap(pod =>
-    c.core.v1.Pod
-      .logs(pod.metadata.name, pod.metadata.namespace)
-      .map(logs => {
-        return {name: pod.metadata.name, logs}
-      }))
+    carbon.core.v1.pod
+      .getLogs(c, pod)
+      .filter(({logs}) => logs.includes("ERROR:"))
+    )
   // Group logs by name, but returns only the `logs` member.
   .groupBy(
-    ({name}) => name,
+    ({pod}) => pod.metadata.name,
     ({logs}) => logs)
-  .subscribe(o => {
-    console.log(o.key);
-    o.forEach(console.log)
-  });
 
 //
-// This is equivalent to:
+// Outputs all logs for pods that contain the string `ERROR:`. Something like:
+//
+// nginx-6f8cf9fbc4-qnrhb
+// ERROR: could not connect to database.
+//
+// nginx2-687c5bbccd-rzjl5
+// ERROR: 500
 //
 
-// const logs =
-//   FROM pod IN c.core.v1.pod.list("default")
-//   FROM logs IN c.core.v1.pod.logs(pod.metadata.name, pod.metadata.namespace)
-//   GROUP {logs: logs, name: pod.metadata.name} BY pod.metadata.name;
-
-// logs.subscribe(o => {
-//   console.log(o.key);
-//   o.forEach(console.log)
-// });
+podLogs.subscribe(logs => {
+  // Print all the name of the pod and its logs.
+  console.log(logs.key);
+  logs.forEach(console.log)
+});

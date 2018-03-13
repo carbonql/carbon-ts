@@ -701,6 +701,24 @@ export namespace core {
           };
         });
       }
+
+      export const getTargetedPods = (
+        c: client.Client, service: k8s.V1Service
+      ): query.Observable<{service: k8s.V1Service; pods: k8s.V1Pod[];}> => {
+        const selector = service.spec.selector;
+        // Service doesn't target any pods.
+        if (selector == null) {
+          return query.Observable.empty();
+        }
+
+        return c.core.v1.Pod
+          .list("default")
+          .filter(p => syncQuery
+            .from(selector)
+            .any(({key, value}) => p.metadata.labels[key] != value))
+          .toArray()
+          .map(pods => {return {service, pods}})
+      }
     }
 
     export namespace volume {

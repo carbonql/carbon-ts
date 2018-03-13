@@ -1,4 +1,5 @@
 import {client, query} from "../../src";
+import * as carbon from "../../src";
 import * as syncQuery from 'linq';
 
 //
@@ -6,27 +7,19 @@ import * as syncQuery from 'linq';
 //
 
 const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
-c.core.v1.Service
-  // Get all services.
+const servicesAndPods = c.core.v1.Service
   .list("default")
-  .flatMap(s => {
-    const selector = s.spec.selector;
-    // Service doesn't target any pods.
-    if (selector == null) {
-      return [];
-    }
-
-    return c.core.v1.Pod
-      .list("default")
-      .filter(p => syncQuery
-        .from(Object.keys(selector))
-        .any(label => p.metadata.labels[label] != selector[label]))
-      .map(p => p.metadata.name)
-      .toArray()
-      .map(ps => `Service '${s.metadata.name}' -> [${ps}]`)
-  })
-  .subscribe(s => console.log(s));
+  .flatMap(service => carbon.core.v1.service.getTargetedPods(c, service));
 
 //
+// Outputs a list of services and the pods they target. Something like:
 //
+//   Service 'nginx' -> [nginx2-687c5bbccd-rzjl5]
 //
+
+servicesAndPods.forEach(({service, pods}) => {
+  const podNames = pods
+    .map(pod => pod.metadata.name)
+    .join(", ")
+  console.log(`Service '${service.metadata.name}' -> [${podNames}]`)
+});
