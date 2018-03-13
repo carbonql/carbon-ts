@@ -196,24 +196,104 @@ const Showcase = props => {
   );
 };
 
+// class Index extends React.Component {
+//   render() {
+//     let language = this.props.language || '';
+
+//     return (
+//       <div>
+//         <HomeSplash language={language} />
+//         <div className="mainContainer">
+//           <Features />
+//           <FeatureCallout />
+//           <LearnHow />
+//           <TryOut />
+//           <Description />
+//           <Showcase language={language} />
+//         </div>
+//       </div>
+//     );
+//   }
+// }
+
+
+//
+// Added
+//
+const Before = ({dir}) => {
+  const content = fs.readFileSync(
+    `./examples/${dir}/before.js`, {encoding: 'utf-8'});
+
+  return (
+    <div className="col">
+      <pre>
+        <code className="hljs css javascript">
+          {content}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+const After = ({dir}) => {
+  const content = fs.readFileSync(
+    `./examples/${dir}/after.out`, {encoding: 'utf-8'});
+
+  return (
+    <div className="col">
+      <pre>
+        <code className="hljs css bash">
+          {content}
+        </code>
+      </pre>
+    </div>
+  )
+}
+
+const Example = ({dir}) => {
+  const content = fs.readFileSync(
+    `./examples/${dir}/header.md`, {encoding: 'utf-8'});
+
+  return (
+    <div>
+      <div className="row">
+        <MarkdownBlock>
+          {content}
+        </MarkdownBlock>
+      </div>
+      <div className="row">
+        <Before dir={dir} />
+        <After dir={dir} />
+      </div>
+      <hr />
+    </div>
+  )
+}
+
 class Index extends React.Component {
   render() {
     let language = this.props.language || '';
 
+    const files = fs.readdirSync('./examples').map(dir => {
+      return <Example dir={dir} />
+    });
+
     return (
-      <div>
-        <HomeSplash language={language} />
-        <div className="mainContainer">
-          <Features />
-          <FeatureCallout />
-          <LearnHow />
-          <TryOut />
-          <Description />
-          <Showcase language={language} />
+      <div className="container mainContainer">
+        <div className="wrapper">
+          <div className="post">
+            {files}
+          </div>
         </div>
       </div>
     );
   }
 }
+//
+// /Added
+//
+
+
+
 
 module.exports = Index;
