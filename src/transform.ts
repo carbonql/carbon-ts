@@ -137,7 +137,7 @@ export namespace core {
             appLabels = {app: deploymentName};
           }
 
-          return apps.v1beta2.deployment.make(deploymentName, appLabels, c, replicas);
+          return apps.v1beta1.deployment.make(deploymentName, appLabels, c, replicas);
         }
       }
     }
@@ -348,7 +348,7 @@ export namespace core {
             appLabels = {app: deploymentName};
           }
 
-          return apps.v1beta2.deployment.make(deploymentName, appLabels, p, replicas);
+          return apps.v1beta1.deployment.make(deploymentName, appLabels, p, replicas);
         }
       }
 
@@ -889,7 +889,7 @@ export namespace core {
 //
 
 export namespace apps {
-  export namespace v1beta2 {
+  export namespace v1beta1 {
     export namespace deployment {
       //
       // Constructors.
@@ -901,7 +901,7 @@ export namespace apps {
         app: k8s.V1Container | k8s.V1Container[] | k8s.V1Pod,
         replicas: number = 1,
         revisionHistoryLimit = 10,
-      ): k8s.V1beta2Deployment => {
+      ): k8s.AppsV1beta1Deployment => {
         let podSpec: k8s.V1PodSpec | null = null;
         if ((<any>app)["kind"] === "Pod") {
           podSpec = (<k8s.V1Pod><object>app).spec;
@@ -911,7 +911,7 @@ export namespace apps {
           podSpec = <k8s.V1PodSpec>{containers: [app]};
         }
 
-        return <k8s.V1beta2Deployment>{
+        return <k8s.AppsV1beta1Deployment>{
           apiVersion: "apps/v1beta2",
           kind: "Deployment",
           metadata: {
@@ -939,7 +939,7 @@ export namespace apps {
       export const configureLifecycle = (
         minReadySeconds?: number,
         progressDeadlineSeconds?: number,
-      ): Transform<k8s.V1beta2Deployment> => {
+      ): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => {
           if (minReadySeconds) {
             d.spec.minReadySeconds = minReadySeconds;
@@ -951,7 +951,7 @@ export namespace apps {
         });
       }
 
-      export const setUpdateStrategyRecreate = (): Transform<k8s.V1beta2Deployment> => {
+      export const setUpdateStrategyRecreate = (): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => {
           d.spec.strategy = <k8s.V1beta2DeploymentStrategy>{
             type: "Recreate",
@@ -962,7 +962,7 @@ export namespace apps {
       export const setUpdateStrategyRolling = (
         maxSurge?: number | string,
         maxUnavailable?: number | string,
-      ): Transform<k8s.V1beta2Deployment> => {
+      ): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => {
           d.spec.strategy = <k8s.V1beta2DeploymentStrategy>{
             type: "RollingUpdate",
@@ -989,7 +989,7 @@ export namespace apps {
           readOnly = false,
           subPath?: string,
           mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
-        ): Transform<k8s.V1beta2Deployment> =>
+        ): Transform<k8s.AppsV1beta1Deployment> =>
           doTransform(p =>
             util.v1.podSpec.addVolume(
               v, mountPath, readOnly, subPath, mountFilter
@@ -1001,7 +1001,7 @@ export namespace apps {
           readOnly = false,
           subPath?: string,
           mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
-        ): Transform<k8s.V1beta2Deployment> =>
+        ): Transform<k8s.AppsV1beta1Deployment> =>
           doTransform(p =>
             util.v1.podSpec.addMount(
               volumeName, mountPath, readOnly, subPath, mountFilter
@@ -1032,7 +1032,7 @@ export namespace apps {
           subPath?: string,
           accessModes: core.v1.persistentVolume.AccessModeTypes[] = ["ReadWriteOnce"],
           mountFilter: Filter<k8s.V1Container> = (_: k8s.V1Container) => true,
-        ): Transform<k8s.V1beta2Deployment, k8s.V1PersistentVolumeClaim> =>
+        ): Transform<k8s.AppsV1beta1Deployment, k8s.V1PersistentVolumeClaim> =>
           p =>
             util.v1.podSpec.claimPersistentVolume(
               pvClaim, mountPath, storageRequest, volumeName, readOnly, subPath,
@@ -1051,15 +1051,15 @@ export namespace apps {
       // Verbs.
       //
 
-      export const pause = (): Transform<k8s.V1beta2Deployment> => {
+      export const pause = (): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => d.spec.paused = true);
       }
 
-      export const unpause = (): Transform<k8s.V1beta2Deployment> => {
+      export const unpause = (): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => d.spec.paused = false);
       }
 
-      export const scale = (replicas: number): Transform<k8s.V1beta2Deployment> => {
+      export const scale = (replicas: number): Transform<k8s.AppsV1beta1Deployment> => {
         return doTransform(d => d.spec.replicas = replicas);
       }
 
@@ -1100,7 +1100,7 @@ export namespace apps {
       }
 
       export const getRevisionHistory = (
-        c: client.Client, d: k8s.V1beta2Deployment,
+        c: client.Client, d: k8s.AppsV1beta1Deployment,
       ): query.Observable<k8s.V1beta1ReplicaSet> => {
         return c.extensions.v1beta1.ReplicaSet
           .list("default")
