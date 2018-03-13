@@ -1101,7 +1101,7 @@ export namespace apps {
 
       export const getRevisionHistory = (
         c: client.Client, d: k8s.V1beta2Deployment,
-      ): query.Observable<{deployment: k8s.V1beta2Deployment, history: k8s.V1beta1ReplicaSet[]}> => {
+      ): query.Observable<k8s.V1beta1ReplicaSet> => {
         return c.extensions.v1beta1.ReplicaSet
           .list("default")
           .filter(rs =>
@@ -1110,12 +1110,12 @@ export namespace apps {
               .where(oref => oref.name == d.metadata.name)
               .count() > 0)
           .toArray()
-          .map(rss => {
+          .flatMap(rss => {
             const arr = syncQuery
               .from(rss)
               .orderBy(rs => rs.metadata.annotations["deployment.kubernetes.io/revision"])
               .toArray();
-            return {deployment: d, history: rss};
+            return query.Observable.from(arr);
           });
       }
     }
