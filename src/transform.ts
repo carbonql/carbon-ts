@@ -1,4 +1,7 @@
 import * as k8s from '@hausdorff/client-node';
+import * as client from './client';
+import * as query from 'rxjs/Rx';
+import * as syncQuery from 'linq';
 
 export type Transform<TIn, TOut=TIn> = (ti: TIn) => TOut;
 export type Filter<TIn> = (ti: TIn) => boolean;
@@ -380,6 +383,13 @@ export namespace core {
             pvClaim, mountPath, storageRequest, volumeName, readOnly,subPath,
             accessModes, mountFilter
           )(p.spec);
+
+      export const getLogs = (
+        c: client.Client, pod: k8s.V1Pod,
+      ): query.Observable<{pod: k8s.V1Pod, logs: string}> =>
+        c.core.v1.Pod
+          .logs(pod.metadata.name, pod.metadata.namespace)
+          .map(logs => logs == null ? {pod, logs: ""} : {pod, logs})
     }
 
     export namespace service {
@@ -1069,6 +1079,26 @@ export namespace apps {
 
           return svc;
         }
+      }
+
+      export const getRevisionHistory = (
+        c: client.Client, d: k8s.V1beta2Deployment,
+      ): query.Observable<{deployment: k8s.V1beta2Deployment, history: k8s.V1beta1ReplicaSet[]}> => {
+        return c.extensions.v1beta1.ReplicaSet
+          .list("default")
+          .filter(rs =>
+            syncQuery
+              .from(rs.metadata.ownerReferences)
+              .where(oref => oref.name == d.metadata.name)
+              .count() > 0)
+          .toArray()
+          .map(rss => {
+            const arr = syncQuery
+              .from(rss)
+              .orderBy(rs => rs.metadata.annotations["deployment.kubernetes.io/revision"])
+              .toArray();
+            return {deployment: d, history: rss};
+          });
       }
     }
   }
