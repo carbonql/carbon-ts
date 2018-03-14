@@ -1,0 +1,47 @@
+{
+  metadata: {
+    annotations: {
+      deployment.kubernetes.io/revision: "1" => "2"
+    },
+    creationTimestamp: "2018-02-28T20:15:32Z" => "2018-03-13T06:34:36Z"
+    generation: 7 => 3
+    labels: {
+      pod-template-hash: "2947959670" => "1264720760"
+    },
+    name: "nginx-6f8cf9fbc4" => "nginx-56b8c64cb4"
+    resourceVersion: "263854" => "263858"
+    selfLink:
+      59,14 inx-6f8cf9fbc56b8c64cb4
+
+    uid: "20c50866-1cc4-11e8-9137-080027cfc4d2" => "9966f685-2688-11e8-adbb-080027cfc4d2"
+  },
+  spec: {
+    replicas: 0 => 3
+    selector: {
+      matchLabels: {
+        pod-template-hash: "2947959670" => "1264720760"
+      }
+    },
+    template: {
+      metadata: {
+        labels: {
+          pod-template-hash: "2947959670" => "1264720760"
+        }
+      },
+      spec: {
+        containers: [
+          0: {
+            image: "nginx:1.7.9" => "nginx:1.9.1"
+          }
+        ]
+      }
+    }
+  },
+  status: {
+    availableReplicas: 3
+    fullyLabeledReplicas: 3
+    observedGeneration: 7 => 3
+    readyReplicas: 3
+    replicas: 0 => 3
+  }
+}

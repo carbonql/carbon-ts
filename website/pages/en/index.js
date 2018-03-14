@@ -223,22 +223,21 @@ const Showcase = props => {
 //
 const Before = ({dir}) => {
   const content = fs.readFileSync(
-    `./examples/${dir}/before.js`, {encoding: 'utf-8'});
+    `../examples/queries/${dir}/before.ts`, {encoding: 'utf-8'});
 
+  const md = "```typescript\n" + content + "\n```";
   return (
     <div className="col">
-      <pre>
-        <code className="hljs css javascript">
-          {content}
-        </code>
-      </pre>
+      <MarkdownBlock>
+        {md}
+      </MarkdownBlock>
     </div>
   );
 };
 
 const After = ({dir}) => {
   const content = fs.readFileSync(
-    `./examples/${dir}/after.out`, {encoding: 'utf-8'});
+    `../examples/queries/${dir}/after.out`, {encoding: 'utf-8'});
 
   return (
     <div className="col">
@@ -253,7 +252,7 @@ const After = ({dir}) => {
 
 const Example = ({dir}) => {
   const content = fs.readFileSync(
-    `./examples/${dir}/header.md`, {encoding: 'utf-8'});
+    `../examples/queries/${dir}/header.md`, {encoding: 'utf-8'});
 
   return (
     <div>
@@ -275,7 +274,7 @@ class Index extends React.Component {
   render() {
     let language = this.props.language || '';
 
-    const files = fs.readdirSync('./examples').map(dir => {
+    const files = fs.readdirSync('../examples/queries').map(dir => {
       return <Example dir={dir} />
     });
 
