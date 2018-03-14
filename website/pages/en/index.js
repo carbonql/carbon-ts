@@ -227,10 +227,15 @@ const Before = ({dir}) => {
 
   const md = "```typescript\n" + content + "\n```";
   return (
-    <div className="col">
-      <MarkdownBlock>
-        {md}
-      </MarkdownBlock>
+    <div className="col-6 p-0 d-flex align-items-stretch">
+      <div className="card w-100">
+        <div className="card-header">
+          Before
+        </div>
+        <div className="card-body m-0 p-0 card-code d-flex align-items-stretch">
+          <MarkdownBlock className="p-0">{md}</MarkdownBlock>
+        </div>
+      </div>
     </div>
   );
 };
@@ -239,15 +244,19 @@ const After = ({dir}) => {
   const content = fs.readFileSync(
     `../examples/queries/${dir}/after.out`, {encoding: 'utf-8'});
 
+  const md = "```bash\n" + content + "\n```";
   return (
-    <div className="col">
-      <pre>
-        <code className="hljs css bash">
-          {content}
-        </code>
-      </pre>
+    <div className="col-6 p-0 d-flex align-items-stretch">
+      <div className="card w-100">
+        <div className="card-header">
+          After
+        </div>
+        <div className="card-body m-0 p-0 card-code d-flex align-items-stretch">
+          <MarkdownBlock className="p-0">{md}</MarkdownBlock>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
 
 const Example = ({dir}) => {
@@ -256,7 +265,7 @@ const Example = ({dir}) => {
 
   return (
     <div>
-      <div className="row">
+      <div className="row pb-3">
         <MarkdownBlock>
           {content}
         </MarkdownBlock>
@@ -275,7 +284,7 @@ class Index extends React.Component {
     let language = this.props.language || '';
 
     const files = fs.readdirSync('../examples/queries').map(dir => {
-      return <Example dir={dir} />
+      return <Example key={dir} dir={dir} />
     });
 
     return (

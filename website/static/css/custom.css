@@ -14,3 +14,40 @@
 
 @media only screen and (min-width: 1500px) {
 }
+
+.card-code code {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+
+  width: 100% !important;
+  border-radius: 0px;
+
+  overflow: scroll;
+}
+
+.card-code > div {
+  display: flex !important;
+  width: 100% !important;
+
+  -webkit-box-align: stretch!important;
+  -ms-flex-align: stretch!important;
+  align-items: stretch!important;
+}
+
+.card-code > div > span {
+  display: flex !important;
+  width: 100% !important;
+
+  -webkit-box-align: stretch!important;
+  -ms-flex-align: stretch!important;
+  align-items: stretch!important;
+}
+
+.card-code > div > span > pre {
+  display: flex !important;
+  width: 100% !important;
+
+  -webkit-box-align: stretch!important;
+  -ms-flex-align: stretch!important;
+  align-items: stretch!important;
+}
