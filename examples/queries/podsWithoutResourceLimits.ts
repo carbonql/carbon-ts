@@ -1,10 +1,10 @@
-import {client, query} from "../../src";
+import {Client, query} from "../../src";
 import * as k8s from '@carbonql/kubernetes-client-node';
 
 //
 // Retrieve pods running on a node where memory pressure is high.
 //
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 
 const podsNoLimits = c.core.v1.Pod
   .list("default")

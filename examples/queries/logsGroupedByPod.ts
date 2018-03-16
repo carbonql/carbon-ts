@@ -5,7 +5,7 @@
 //       pv = core.v1.persistentVolume,
 //       service = core.v1.service;
 
-import {client} from "../../src";
+import {Client} from "../../src";
 import * as carbon from "../../src";
 
 //
@@ -13,7 +13,7 @@ import * as carbon from "../../src";
 // pod they belong to.
 //
 
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const podLogs = c.core.v1.Pod
   .list("default")
   // Retrieve logs for all pods, filter for logs with `ERROR:`.

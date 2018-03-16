@@ -1,4 +1,4 @@
-import {client, query} from "../../src";
+import {Client, query} from "../../src";
 import * as carbon from "../../src";
 import * as syncQuery from 'linq';
 
@@ -6,7 +6,7 @@ import * as syncQuery from 'linq';
 // Create a list of services and the pods they target.
 //
 
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const servicesAndPods = c.core.v1.Service
   .list("default")
   .flatMap(service => carbon.core.v1.service.getTargetedPods(c, service));

@@ -1,6 +1,6 @@
-import {client, query} from "../../src";
+import {Client, query} from "../../src";
 
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 
 //
 // Find distinct container images containing the string "mysql".

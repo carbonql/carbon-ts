@@ -1,11 +1,11 @@
-import {client, query} from "../../src";
+import {Client, query} from "../../src";
 
 //
 // Find all events that are either warnings or errors, grouped by the `kind`
 // that caused them.
 //
 
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 
 const warningsAndErrors = c.core.v1.Event
   .list()

@@ -6,5 +6,4 @@ export * from './transform';
 import * as query from 'rxjs/Rx';
 export {query};
 
-import * as client from './client';
-export {client};
+export {Client} from './client';

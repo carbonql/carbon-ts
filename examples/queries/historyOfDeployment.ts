@@ -1,4 +1,4 @@
-import {client, query} from "../../src";
+import {Client, query} from "../../src";
 import * as carbon from "../../src";
 const jsondiff = require("jsondiffpatch");
 
@@ -6,7 +6,7 @@ const jsondiff = require("jsondiffpatch");
 // Diff the last two rollouts in a deployment's history.
 //
 
-const c = client.Client.fromFile(<string>process.env.KUBECONFIG);
+const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const history = c.apps.v1beta1.Deployment
   .list()
   .filter(d => d.metadata.name == "nginx")
