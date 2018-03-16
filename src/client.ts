@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import * as k8s from '@hausdorff/client-node';
+import * as k8s from '@carbonql/kubernetes-client-node';
 import * as path from "path";
 import * as http from "http";
 import * as rx from "rxjs/Rx";
@@ -16,19 +16,19 @@ export class Client {
   public core = {
     v1: {
       client: () =>
-        <k8s.Core_v1Api>fromKubeConfig(this._kc, k8s.Core_v1Api),
+        <k8s.CoreV1Api>fromKubeConfig(this._kc, k8s.CoreV1Api),
 
       ComponentStatus: {
         list: () => {
-          return listAsObservable(this.core.v1.client().listComponentStatus());
+          return listAsObservable(this.core.v1.client().listCoreV1ComponentStatus());
         },
       },
       ConfigMap: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedConfigMap(namespace)
-              : this.core.v1.client().listConfigMapForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedConfigMap(namespace)
+              : this.core.v1.client().listCoreV1ConfigMapForAllNamespaces()
           );
         },
       },
@@ -36,8 +36,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedEndpoints(namespace)
-              : this.core.v1.client().listEndpointsForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedEndpoints(namespace)
+              : this.core.v1.client().listCoreV1EndpointsForAllNamespaces()
           );
         },
       },
@@ -45,8 +45,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedEvent(namespace)
-              : this.core.v1.client().listEventForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedEvent(namespace)
+              : this.core.v1.client().listCoreV1EventForAllNamespaces()
           );
         },
       },
@@ -54,22 +54,22 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedLimitRange(namespace)
-              : this.core.v1.client().listLimitRangeForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedLimitRange(namespace)
+              : this.core.v1.client().listCoreV1LimitRangeForAllNamespaces()
           );
         },
       },
       Namespace: {
         list: () => {
-          return listAsObservable(this.core.v1.client().listNamespace());
+          return listAsObservable(this.core.v1.client().listCoreV1Namespace());
         },
       },
       PersistentVolumeClaim: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedPersistentVolumeClaim(namespace)
-              : this.core.v1.client().listPersistentVolumeClaimForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedPersistentVolumeClaim(namespace)
+              : this.core.v1.client().listCoreV1PersistentVolumeClaimForAllNamespaces()
           );
         },
       },
@@ -77,20 +77,20 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedPod(namespace)
-              : this.core.v1.client().listPodForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedPod(namespace)
+              : this.core.v1.client().listCoreV1PodForAllNamespaces()
           );
         },
         logs: (name: string, namespace: string, container?: string) => {
-          return objAsObservable(this.core.v1.client().readNamespacedPodLog(name, namespace, container))
+          return objAsObservable(this.core.v1.client().readCoreV1NamespacedPodLog(name, namespace, container))
         },
       },
       PodTemplate: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedPodTemplate(namespace)
-              : this.core.v1.client().listPodTemplateForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedPodTemplate(namespace)
+              : this.core.v1.client().listCoreV1PodTemplateForAllNamespaces()
           );
         },
       },
@@ -98,8 +98,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedReplicationController(namespace)
-              : this.core.v1.client().listReplicationControllerForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedReplicationController(namespace)
+              : this.core.v1.client().listCoreV1ReplicationControllerForAllNamespaces()
           );
         },
       },
@@ -107,8 +107,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedResourceQuota(namespace)
-              : this.core.v1.client().listResourceQuotaForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedResourceQuota(namespace)
+              : this.core.v1.client().listCoreV1ResourceQuotaForAllNamespaces()
           );
         },
       },
@@ -116,8 +116,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedSecret(namespace)
-              : this.core.v1.client().listSecretForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedSecret(namespace)
+              : this.core.v1.client().listCoreV1SecretForAllNamespaces()
           );
         },
       },
@@ -125,8 +125,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedServiceAccount(namespace)
-              : this.core.v1.client().listServiceAccountForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedServiceAccount(namespace)
+              : this.core.v1.client().listCoreV1ServiceAccountForAllNamespaces()
           );
         },
       },
@@ -134,19 +134,19 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.core.v1.client().listNamespacedService(namespace)
-              : this.core.v1.client().listServiceForAllNamespaces()
+              ? this.core.v1.client().listCoreV1NamespacedService(namespace)
+              : this.core.v1.client().listCoreV1ServiceForAllNamespaces()
           );
         },
       },
       Node: {
         list: () => {
-          return listAsObservable(this.core.v1.client().listNode());
+          return listAsObservable(this.core.v1.client().listCoreV1Node());
         },
       },
       PersistentVolume: {
         list: () => {
-          return listAsObservable(this.core.v1.client().listPersistentVolume());
+          return listAsObservable(this.core.v1.client().listCoreV1PersistentVolume());
         },
       },
 
@@ -156,14 +156,14 @@ export class Client {
   public apps = {
     v1beta1: {
       client: () =>
-        <k8s.Apps_v1beta1Api>fromKubeConfig(this._kc, k8s.Apps_v1beta1Api),
+        <k8s.AppsV1beta1Api>fromKubeConfig(this._kc, k8s.AppsV1beta1Api),
 
       ControllerRevision: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.apps.v1beta1.client().listNamespacedControllerRevision(namespace)
-              : this.apps.v1beta1.client().listControllerRevisionForAllNamespaces()
+              ? this.apps.v1beta1.client().listAppsV1beta1NamespacedControllerRevision(namespace)
+              : this.apps.v1beta1.client().listAppsV1beta1ControllerRevisionForAllNamespaces()
           );
         },
       },
@@ -171,8 +171,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.apps.v1beta1.client().listNamespacedDeployment(namespace)
-              : this.apps.v1beta1.client().listDeploymentForAllNamespaces()
+              ? this.apps.v1beta1.client().listAppsV1beta1NamespacedDeployment(namespace)
+              : this.apps.v1beta1.client().listAppsV1beta1DeploymentForAllNamespaces()
           );
         },
       },
@@ -180,8 +180,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.apps.v1beta1.client().listNamespacedStatefulSet(namespace)
-              : this.apps.v1beta1.client().listStatefulSetForAllNamespaces()
+              ? this.apps.v1beta1.client().listAppsV1beta1NamespacedStatefulSet(namespace)
+              : this.apps.v1beta1.client().listAppsV1beta1StatefulSetForAllNamespaces()
           );
         },
       },
@@ -192,14 +192,29 @@ export class Client {
   public autoscaling = {
     v1: {
       client: () =>
-        <k8s.Autoscaling_v1Api>fromKubeConfig(this._kc, k8s.Autoscaling_v1Api),
+        <k8s.AutoscalingV1Api>fromKubeConfig(this._kc, k8s.AutoscalingV1Api),
 
       HorizontalPodAutoscaler: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.autoscaling.v1.client().listNamespacedHorizontalPodAutoscaler(namespace)
-              : this.autoscaling.v1.client().listHorizontalPodAutoscalerForAllNamespaces()
+              ? this.autoscaling.v1.client().listAutoscalingV1NamespacedHorizontalPodAutoscaler(namespace)
+              : this.autoscaling.v1.client().listAutoscalingV1HorizontalPodAutoscalerForAllNamespaces()
+          );
+        },
+      },
+
+    },
+    v2alpha1: {
+      client: () =>
+        <k8s.AutoscalingV2alpha1Api>fromKubeConfig(this._kc, k8s.AutoscalingV2alpha1Api),
+
+      HorizontalPodAutoscaler: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.autoscaling.v2alpha1.client().listAutoscalingV2alpha1NamespacedHorizontalPodAutoscaler(namespace)
+              : this.autoscaling.v2alpha1.client().listAutoscalingV2alpha1HorizontalPodAutoscalerForAllNamespaces()
           );
         },
       },
@@ -210,14 +225,14 @@ export class Client {
   public batch = {
     v1: {
       client: () =>
-        <k8s.Batch_v1Api>fromKubeConfig(this._kc, k8s.Batch_v1Api),
+        <k8s.BatchV1Api>fromKubeConfig(this._kc, k8s.BatchV1Api),
 
       Job: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.batch.v1.client().listNamespacedJob(namespace)
-              : this.batch.v1.client().listJobForAllNamespaces()
+              ? this.batch.v1.client().listBatchV1NamespacedJob(namespace)
+              : this.batch.v1.client().listBatchV1JobForAllNamespaces()
           );
         },
       },
@@ -225,14 +240,23 @@ export class Client {
     },
     v2alpha1: {
       client: () =>
-        <k8s.Batch_v2alpha1Api>fromKubeConfig(this._kc, k8s.Batch_v2alpha1Api),
+        <k8s.BatchV2alpha1Api>fromKubeConfig(this._kc, k8s.BatchV2alpha1Api),
 
       CronJob: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.batch.v2alpha1.client().listNamespacedCronJob(namespace)
-              : this.batch.v2alpha1.client().listCronJobForAllNamespaces()
+              ? this.batch.v2alpha1.client().listBatchV2alpha1NamespacedCronJob(namespace)
+              : this.batch.v2alpha1.client().listBatchV2alpha1CronJobForAllNamespaces()
+          );
+        },
+      },
+      ScheduledJob: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.batch.v2alpha1.client().listBatchV2alpha1NamespacedScheduledJob(namespace)
+              : this.batch.v2alpha1.client().listBatchV2alpha1ScheduledJobForAllNamespaces()
           );
         },
       },
@@ -243,14 +267,14 @@ export class Client {
   public extensions = {
     v1beta1: {
       client: () =>
-        <k8s.Extensions_v1beta1Api>fromKubeConfig(this._kc, k8s.Extensions_v1beta1Api),
+        <k8s.ExtensionsV1beta1Api>fromKubeConfig(this._kc, k8s.ExtensionsV1beta1Api),
 
       DaemonSet: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.extensions.v1beta1.client().listNamespacedDaemonSet(namespace)
-              : this.extensions.v1beta1.client().listDaemonSetForAllNamespaces()
+              ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedDaemonSet(namespace)
+              : this.extensions.v1beta1.client().listExtensionsV1beta1DaemonSetForAllNamespaces()
           );
         },
       },
@@ -258,8 +282,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.extensions.v1beta1.client().listNamespacedDeployment(namespace)
-              : this.extensions.v1beta1.client().listDeploymentForAllNamespaces()
+              ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedDeployment(namespace)
+              : this.extensions.v1beta1.client().listExtensionsV1beta1DeploymentForAllNamespaces()
           );
         },
       },
@@ -267,8 +291,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.extensions.v1beta1.client().listNamespacedIngress(namespace)
-              : this.extensions.v1beta1.client().listIngressForAllNamespaces()
+              ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedIngress(namespace)
+              : this.extensions.v1beta1.client().listExtensionsV1beta1IngressForAllNamespaces()
           );
         },
       },
@@ -276,8 +300,8 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.extensions.v1beta1.client().listNamespacedNetworkPolicy(namespace)
-              : this.extensions.v1beta1.client().listNetworkPolicyForAllNamespaces()
+              ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedNetworkPolicy(namespace)
+              : this.extensions.v1beta1.client().listExtensionsV1beta1NetworkPolicyForAllNamespaces()
           );
         },
       },
@@ -285,14 +309,19 @@ export class Client {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.extensions.v1beta1.client().listNamespacedReplicaSet(namespace)
-              : this.extensions.v1beta1.client().listReplicaSetForAllNamespaces()
+              ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedReplicaSet(namespace)
+              : this.extensions.v1beta1.client().listExtensionsV1beta1ReplicaSetForAllNamespaces()
           );
         },
       },
       PodSecurityPolicy: {
         list: () => {
-          return listAsObservable(this.extensions.v1beta1.client().listPodSecurityPolicy());
+          return listAsObservable(this.extensions.v1beta1.client().listExtensionsV1beta1PodSecurityPolicy());
+        },
+      },
+      ThirdPartyResource: {
+        list: () => {
+          return listAsObservable(this.extensions.v1beta1.client().listExtensionsV1beta1ThirdPartyResource());
         },
       },
 
@@ -302,14 +331,14 @@ export class Client {
   public policy = {
     v1beta1: {
       client: () =>
-        <k8s.Policy_v1beta1Api>fromKubeConfig(this._kc, k8s.Policy_v1beta1Api),
+        <k8s.PolicyV1beta1Api>fromKubeConfig(this._kc, k8s.PolicyV1beta1Api),
 
       PodDisruptionBudget: {
         list: (namespace?: string) => {
           return listAsObservable(
             namespace
-              ? this.policy.v1beta1.client().listNamespacedPodDisruptionBudget(namespace)
-              : this.policy.v1beta1.client().listPodDisruptionBudgetForAllNamespaces()
+              ? this.policy.v1beta1.client().listPolicyV1beta1NamespacedPodDisruptionBudget(namespace)
+              : this.policy.v1beta1.client().listPolicyV1beta1PodDisruptionBudgetForAllNamespaces()
           );
         },
       },

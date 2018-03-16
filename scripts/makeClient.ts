@@ -50,13 +50,14 @@ const addNsList = (
     .count() == 2;
 
   if (isNsList) {
+    const groupNs = `${ucfirst(group)}${ucfirst(version)}`
     methods.push({
       name: "list",
       paramsText: "namespace?: string",
       body: `return listAsObservable(
             namespace
-              ? this.${group}.${version}.client().listNamespaced${kind}(namespace)
-              : this.${group}.${version}.client().list${kind}ForAllNamespaces()
+              ? this.${group}.${version}.client().list${groupNs}Namespaced${kind}(namespace)
+              : this.${group}.${version}.client().list${groupNs}${kind}ForAllNamespaces()
           );`
     });
   }
@@ -74,7 +75,7 @@ const addNonNsList = (
     methods.push({
       name: "list",
       paramsText: "",
-      body: `return listAsObservable(this.${group}.${version}.client().list${kind}());`,
+      body: `return listAsObservable(this.${group}.${version}.client().list${ucfirst(group)}${ucfirst(version)}${kind}());`,
     });
   }
 }
@@ -85,9 +86,9 @@ const addLogsMethods = (
   // Add a method for logs if the GVK is for Pod.
   if (group == "core" && version == "v1" && kind == "Pod") {
     methods.push({
-      name: "logsFromMeta",
+      name: "logs",
       paramsText: "name: string, namespace: string, container?: string",
-      body: `return objAsObservable(this.${group}.${version}.client().readNamespacedPodLog(name, namespace, container))`,
+      body: `return objAsObservable(this.${group}.${version}.client().read${ucfirst(group)}${ucfirst(version)}NamespacedPodLog(name, namespace, container))`,
     });
   }
 }
@@ -149,7 +150,7 @@ const groups: GroupConfig[] = linq
 
         return {
           version: version,
-          clientName: `k8s.${ucfirst(group)}_${version}Api`,
+          clientName: `k8s.${ucfirst(group)}${ucfirst(version)}Api`,
           kinds: lists.toArray(),
         }
       })
