@@ -48,7 +48,10 @@ const makeOurGroupName = (group: string): string => {
 
     newGroup = newGroup
       .split(".")
-      .map(component => ucfirst(component))
+      .map((component, i) => {
+        if (i > 0) return ucfirst(component)
+        return component;
+      })
       .join("");
 
     return newGroup;
@@ -63,18 +66,14 @@ const makeUpstreamGroupName = (group: string): string => {
       .split(".")
       .reverse()
       .map(component => ucfirst(component))
-      .join()
+      .join("")
   }
 
   return group;
 }
 
 const makeClientName = (group: string, version: string): string => {
-  const ourGroup = group.includes(".")
-    ? group = makeOurGroupName(group)
-    : group;
-
-  return `k8s.${ucfirst(ourGroup)}${ucfirst(version)}Api`;
+  return `k8s.${ucfirst(makeOurGroupName(group))}${ucfirst(version)}Api`;
 }
 
 const addNsList = (
