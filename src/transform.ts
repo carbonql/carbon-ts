@@ -1067,6 +1067,34 @@ export namespace apps {
   }
 }
 
+export namespace rbacAuthorization {
+  export namespace v1beta1 {
+    export namespace role {
+      export const appliesTo = (
+        role: k8s.IoK8sKubernetesPkgApisRbacV1beta1Role, apiGroup: string, resource: string,
+      ): boolean =>
+        syncQuery
+          .from(role.rules)
+          .any(rule =>
+            syncQuery
+              .from(rule.apiGroups)
+              .any(currGroup => currGroup == apiGroup) &&
+            syncQuery
+              .from(rule.resources)
+              .any(currRes => currRes == resource));
+    }
+
+    export namespace roleBinding {
+      export const referencesRole = (
+        binding: k8s.IoK8sKubernetesPkgApisRbacV1beta1RoleBinding, name: string,
+      ): boolean =>
+        binding.roleRef.kind == "Role" &&
+        binding.roleRef.apiGroup == "rbac.authorization.k8s.io" &&
+        binding.roleRef.name == name
+    }
+  }
+}
+
 //
 // Private helpers.
 //
