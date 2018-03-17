@@ -153,6 +153,39 @@ export class Client {
     },
 
   };
+  public Admissionregistration = {
+    v1alpha1: {
+      client: () =>
+        <k8s.AdmissionregistrationV1alpha1Api>fromKubeConfig(this._kc, k8s.AdmissionregistrationV1alpha1Api),
+
+      ExternalAdmissionHookConfiguration: {
+        list: () => {
+          return listAsObservable(this.Admissionregistration.v1alpha1.client().listAdmissionregistrationV1alpha1ExternalAdmissionHookConfiguration());
+        },
+      },
+      InitializerConfiguration: {
+        list: () => {
+          return listAsObservable(this.Admissionregistration.v1alpha1.client().listAdmissionregistrationV1alpha1InitializerConfiguration());
+        },
+      },
+
+    },
+
+  };
+  public Apiregistration = {
+    v1beta1: {
+      client: () =>
+        <k8s.ApiregistrationV1beta1Api>fromKubeConfig(this._kc, k8s.ApiregistrationV1beta1Api),
+
+      APIService: {
+        list: () => {
+          return listAsObservable(this.Apiregistration.v1beta1.client().listApiregistrationV1beta1APIService());
+        },
+      },
+
+    },
+
+  };
   public apps = {
     v1beta1: {
       client: () =>
@@ -264,6 +297,20 @@ export class Client {
     },
 
   };
+  public Certificates = {
+    v1beta1: {
+      client: () =>
+        <k8s.CertificatesV1beta1Api>fromKubeConfig(this._kc, k8s.CertificatesV1beta1Api),
+
+      CertificateSigningRequest: {
+        list: () => {
+          return listAsObservable(this.Certificates.v1beta1.client().listCertificatesV1beta1CertificateSigningRequest());
+        },
+      },
+
+    },
+
+  };
   public extensions = {
     v1beta1: {
       client: () =>
@@ -328,6 +375,24 @@ export class Client {
     },
 
   };
+  public Networking = {
+    v1: {
+      client: () =>
+        <k8s.NetworkingV1Api>fromKubeConfig(this._kc, k8s.NetworkingV1Api),
+
+      NetworkPolicy: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.Networking.v1.client().listNetworkingV1NamespacedNetworkPolicy(namespace)
+              : this.Networking.v1.client().listNetworkingV1NetworkPolicyForAllNamespaces()
+          );
+        },
+      },
+
+    },
+
+  };
   public policy = {
     v1beta1: {
       client: () =>
@@ -340,6 +405,120 @@ export class Client {
               ? this.policy.v1beta1.client().listPolicyV1beta1NamespacedPodDisruptionBudget(namespace)
               : this.policy.v1beta1.client().listPolicyV1beta1PodDisruptionBudgetForAllNamespaces()
           );
+        },
+      },
+
+    },
+
+  };
+  public RbacAuthorization = {
+    v1alpha1: {
+      client: () =>
+        <k8s.RbacAuthorizationV1alpha1Api>fromKubeConfig(this._kc, k8s.RbacAuthorizationV1alpha1Api),
+
+      ClusterRoleBinding: {
+        list: () => {
+          return listAsObservable(this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1ClusterRoleBinding());
+        },
+      },
+      ClusterRole: {
+        list: () => {
+          return listAsObservable(this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1ClusterRole());
+        },
+      },
+      RoleBinding: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1NamespacedRoleBinding(namespace)
+              : this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1RoleBindingForAllNamespaces()
+          );
+        },
+      },
+      Role: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1NamespacedRole(namespace)
+              : this.RbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1RoleForAllNamespaces()
+          );
+        },
+      },
+
+    },
+    v1beta1: {
+      client: () =>
+        <k8s.RbacAuthorizationV1beta1Api>fromKubeConfig(this._kc, k8s.RbacAuthorizationV1beta1Api),
+
+      ClusterRoleBinding: {
+        list: () => {
+          return listAsObservable(this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1ClusterRoleBinding());
+        },
+      },
+      ClusterRole: {
+        list: () => {
+          return listAsObservable(this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1ClusterRole());
+        },
+      },
+      RoleBinding: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1NamespacedRoleBinding(namespace)
+              : this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1RoleBindingForAllNamespaces()
+          );
+        },
+      },
+      Role: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1NamespacedRole(namespace)
+              : this.RbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1RoleForAllNamespaces()
+          );
+        },
+      },
+
+    },
+
+  };
+  public Settings = {
+    v1alpha1: {
+      client: () =>
+        <k8s.SettingsV1alpha1Api>fromKubeConfig(this._kc, k8s.SettingsV1alpha1Api),
+
+      PodPreset: {
+        list: (namespace?: string) => {
+          return listAsObservable(
+            namespace
+              ? this.Settings.v1alpha1.client().listSettingsV1alpha1NamespacedPodPreset(namespace)
+              : this.Settings.v1alpha1.client().listSettingsV1alpha1PodPresetForAllNamespaces()
+          );
+        },
+      },
+
+    },
+
+  };
+  public Storage = {
+    v1: {
+      client: () =>
+        <k8s.StorageV1Api>fromKubeConfig(this._kc, k8s.StorageV1Api),
+
+      StorageClass: {
+        list: () => {
+          return listAsObservable(this.Storage.v1.client().listStorageV1StorageClass());
+        },
+      },
+
+    },
+    v1beta1: {
+      client: () =>
+        <k8s.StorageV1beta1Api>fromKubeConfig(this._kc, k8s.StorageV1beta1Api),
+
+      StorageClass: {
+        list: () => {
+          return listAsObservable(this.Storage.v1beta1.client().listStorageV1beta1StorageClass());
         },
       },
 

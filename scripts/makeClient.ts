@@ -13,6 +13,8 @@ const operationId = "operationId";
 
 interface GroupConfig {
   readonly group: string
+  readonly ourGroupName: string
+  readonly upstreamGroupName: string
   readonly versions: VersionConfig[]
 }
 
@@ -37,8 +39,46 @@ const ucfirst = (s: string): string => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+const makeOurGroupName = (group: string): string => {
+  if (group.includes(".")) {
+    let newGroup = group;
+    if (newGroup.endsWith(".k8s.io")) {
+      newGroup = newGroup.slice(0, -7);
+    }
+
+    newGroup = newGroup
+      .split(".")
+      .map(component => ucfirst(component))
+      .join("");
+
+    return newGroup;
+  }
+
+  return group;
+}
+
+const makeUpstreamGroupName = (group: string): string => {
+  if (group.includes(".")) {
+    return group
+      .split(".")
+      .reverse()
+      .map(component => ucfirst(component))
+      .join()
+  }
+
+  return group;
+}
+
+const makeClientName = (group: string, version: string): string => {
+  const ourGroup = group.includes(".")
+    ? group = makeOurGroupName(group)
+    : group;
+
+  return `k8s.${ucfirst(ourGroup)}${ucfirst(version)}Api`;
+}
+
 const addNsList = (
-  methods: MethodConfig[], group: string, version: string, kind: string,
+  methods: MethodConfig[], ourGroupName: string, version: string, kind: string,
   operations: linq.IEnumerable<string>,
 ) => {
   // Find out if we need to create namespaced/non-namespaced list
@@ -50,32 +90,32 @@ const addNsList = (
     .count() == 2;
 
   if (isNsList) {
-    const groupNs = `${ucfirst(group)}${ucfirst(version)}`
+    const groupNs = `${ucfirst(ourGroupName)}${ucfirst(version)}`
     methods.push({
       name: "list",
       paramsText: "namespace?: string",
       body: `return listAsObservable(
             namespace
-              ? this.${group}.${version}.client().list${groupNs}Namespaced${kind}(namespace)
-              : this.${group}.${version}.client().list${groupNs}${kind}ForAllNamespaces()
+              ? this.${ourGroupName}.${version}.client().list${groupNs}Namespaced${kind}(namespace)
+              : this.${ourGroupName}.${version}.client().list${groupNs}${kind}ForAllNamespaces()
           );`
     });
   }
 }
 
 const addNonNsList = (
-  methods: MethodConfig[], group: string, version: string, kind: string,
+  methods: MethodConfig[], ourGroupName: string, version: string, kind: string,
   operations: linq.IEnumerable<string>,
 ) => {
   const isNonNsList = operations
-    .where(op => op == `list${ucfirst(group)}${ucfirst(version)}${ucfirst(kind)}`)
+    .where(op => op == `list${ucfirst(ourGroupName)}${ucfirst(version)}${ucfirst(kind)}`)
     .count() == 1;
 
   if (isNonNsList) {
     methods.push({
       name: "list",
       paramsText: "",
-      body: `return listAsObservable(this.${group}.${version}.client().list${ucfirst(group)}${ucfirst(version)}${kind}());`,
+      body: `return listAsObservable(this.${ourGroupName}.${version}.client().list${ucfirst(ourGroupName)}${ucfirst(version)}${kind}());`,
     });
   }
 }
@@ -105,22 +145,22 @@ const groups: GroupConfig[] = linq
   .from(Object.keys(paths))
   .select(path => paths[path]["get"])
   .where(get => get != null && get[k8sAction] == "list")
-
-  // Temporarily strip out "complex" groups.
-  .where(get => !(<string>get[groupVersionKind].group).includes("."))
-  //
-
   .select(get => {
     // For historical reasons, the group `core` is denoted by the empty string.
     // Add this explicitly.
     const objectGvk = get[groupVersionKind];
-    objectGvk.group = objectGvk.group ? objectGvk.group : "core";
+    if (objectGvk.group == "") {
+      objectGvk.group = "core";
+    }
+
     return get;
   })
   // Group endpoints by group so we can create a `GroupConfig[]`.
   .groupBy(endpoint => endpoint[groupVersionKind].group)
   .select<GroupConfig>(endpoints => {
     const group = endpoints.key();
+    const ourGroupName = makeOurGroupName(group);
+    const upstreamGroupName = makeUpstreamGroupName(group);
 
     // Group endpoints by version so we can create a `VersionConfig[]`.
     const versions: VersionConfig[] = endpoints
@@ -138,8 +178,8 @@ const groups: GroupConfig[] = linq
             const operations = endpoints.select(e => <string>e[operationId]);
             const methods: MethodConfig[] = [];
 
-            addNsList(methods, group, version, kind, operations);
-            addNonNsList(methods, group, version, kind, operations);
+            addNsList(methods, ourGroupName, version, kind, operations);
+            addNonNsList(methods, ourGroupName, version, kind, operations);
             addLogsMethods(methods, group, version, kind);
 
             return {
@@ -150,7 +190,7 @@ const groups: GroupConfig[] = linq
 
         return {
           version: version,
-          clientName: `k8s.${ucfirst(group)}${ucfirst(version)}Api`,
+          clientName: makeClientName(group, version),
           kinds: lists.toArray(),
         }
       })
@@ -158,6 +198,8 @@ const groups: GroupConfig[] = linq
 
     return {
       group: group,
+      ourGroupName: ourGroupName,
+      upstreamGroupName: upstreamGroupName,
       versions: versions,
     };
   })

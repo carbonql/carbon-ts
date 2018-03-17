@@ -14,7 +14,7 @@ export class Client {
   private constructor(private _kc: k8s.KubeConfig) { }
 
   {{#groups}}
-  public {{group}} = {
+  public {{ourGroupName}} = {
     {{#versions}}
     {{version}}: {
       client: () =>
