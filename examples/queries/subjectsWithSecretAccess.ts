@@ -1,5 +1,5 @@
-import {Client, query, rbacAuthorization} from "../../src";
-const rbac = rbacAuthorization
+import {Client, transform} from "../../src";
+const rbac = transform.rbacAuthorization
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const subjectsWithSecretAccess = c.rbacAuthorization.v1beta1.Role

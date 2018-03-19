@@ -5,8 +5,7 @@
 //       pv = core.v1.persistentVolume,
 //       service = core.v1.service;
 
-import {Client} from "../../src";
-import * as carbon from "../../src";
+import {Client, transform} from "../../src";
 
 //
 // Get logs in all pods in the `default` namespace, group them according to the
@@ -18,7 +17,7 @@ const podLogs = c.core.v1.Pod
   .list("default")
   // Retrieve logs for all pods, filter for logs with `ERROR:`.
   .flatMap(pod =>
-    carbon.core.v1.pod
+    transform.core.v1.pod
       .getLogs(c, pod)
       .filter(({logs}) => logs.includes("ERROR:"))
     )

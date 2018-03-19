@@ -1,5 +1,4 @@
-import {Client, query} from "../../src";
-import * as carbon from "../../src";
+import {Client, query, transform} from "../../src";
 const jsondiff = require("jsondiffpatch");
 
 //
@@ -11,7 +10,7 @@ const history = c.apps.v1beta1.Deployment
   .list()
   .filter(d => d.metadata.name == "nginx")
   .flatMap(d =>
-    carbon.apps.v1beta1.deployment
+    transform.apps.v1beta1.deployment
       .getRevisionHistory(c, d)
       .takeLast(2)
       .toArray());

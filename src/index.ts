@@ -1,7 +1,8 @@
 import * as k8s from '@carbonql/kubernetes-client-node';
 import * as syncQuery from 'linq';
 
-export * from './transform';
+import * as transform from './transform';
+export {transform};
 
 import * as query from 'rxjs/Rx';
 export {query};

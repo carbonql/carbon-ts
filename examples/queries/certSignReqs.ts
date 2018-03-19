@@ -1,4 +1,5 @@
-import {Client, certificates} from "../../src";
+import {Client, transform} from "../../src";
+const certificates = transform.certificates;
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const csrs = c.certificates.v1beta1.CertificateSigningRequest

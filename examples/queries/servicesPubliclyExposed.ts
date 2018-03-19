@@ -1,4 +1,4 @@
-import {Client, query, rbacAuthorization} from "../../src";
+import {Client, query} from "../../src";
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const loadBalancers = c.core.v1.Service

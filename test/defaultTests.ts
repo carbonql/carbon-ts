@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { core } from '../src';
-const configMap = core.v1.configMap,
+import { transform } from '../src';
+const core = transform.core,
+      configMap = core.v1.configMap,
       container = core.v1.container;
 
 const tests: {name: string, actual: any, expected: any}[] = [
