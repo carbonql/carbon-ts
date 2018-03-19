@@ -830,6 +830,37 @@ export namespace core {
 }
 
 //
+//
+//
+
+export namespace certificates {
+  export namespace v1beta1 {
+    export namespace certificateSigningRequest {
+      export const getStatus = (
+        csr: k8s.IoK8sKubernetesPkgApisCertificatesV1beta1CertificateSigningRequest,
+      ): k8s.IoK8sKubernetesPkgApisCertificatesV1beta1CertificateSigningRequestCondition => {
+        const pending = {
+          type: "Pending",
+          message: "Pending",
+          reason: "Pending",
+          lastUpdateTime: {}
+        };
+        if (csr.status.conditions == null) {
+          return pending;
+        }
+
+        const conditions = csr.status.conditions
+          .filter(cond => cond.type == "Approved" || cond.type == "Denied");
+
+        return conditions.length > 0
+          ? conditions[conditions.length-1]
+          : pending;
+      }
+    }
+  }
+}
+
+//
 // Apps.
 //
 
