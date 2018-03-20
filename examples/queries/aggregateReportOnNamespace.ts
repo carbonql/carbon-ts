@@ -22,4 +22,3 @@ report.forEach(([ns, pods, secrets, services, configMaps, pvcs]) => {
   console.log(`  ConfigMaps:\t${configMaps.length}`);
   console.log(`  PVCs:\t\t${pvcs.length}`);
 });
-

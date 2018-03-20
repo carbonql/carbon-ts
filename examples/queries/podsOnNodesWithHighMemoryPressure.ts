@@ -1,10 +1,6 @@
 import {Client, query} from "../../src";
 
-//
-// List pods running on a node where memory pressure is high.
-//
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
-
 const pressured = c.core.v1.Pod.list()
   // Index pods by node name.
   .groupBy(pod => pod.spec.nodeName)
@@ -25,19 +21,23 @@ const pressured = c.core.v1.Pod.list()
       .flatMap(pods => nodes.map(node => {return {node, pods}}))
   })
 
-//
-// Outputs a list of nodes under high memory pressure and the pods scheduled on
-// them. Something like:
-//
-//  your-high-pressure-node-name
-//      nginx-6f8cf9fbc4-qnrhb
-//      nginx2-687c5bbccd-rzjl5
-//      kube-addon-manager-minikube
-//      kube-dns-54cccfbdf8-hwgh8
-//      kubernetes-dashboard-77d8b98585-gzjgb
-//      storage-provisioner
-//
 pressured.forEach(({node, pods}) => {
   console.log(node.metadata.name);
   pods.forEach(pod => console.log(`    ${pod.metadata.name}`));
 });
+
+// This is equivalent to:
+// const c = Client.fromFile(<string>process.env.KUBECONFIG);
+// const pressured =
+//   from pod in c.core.v1.Pod.list()
+//   group pod by pod.spec.nodeName into podsOnNode
+//   join node in c.core.v1.Node.list() on podsOnNode.Key equals node.metadata.name
+//   where
+//       (from condition in node.status.conditions
+//       where condition.type == "MemoryPressure" && condition.status == "True").Count() >= 1
+//   select new{node = node, pods = podsOnNode};
+
+// pressured.forEach(({node, pods}) => {
+//   console.log(node.metadata.name);
+//   pods.forEach(pod => console.log(`    ${pod.metadata.name}`));
+// });

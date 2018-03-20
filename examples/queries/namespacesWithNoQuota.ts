@@ -10,8 +10,7 @@ const noQuotas = c.core.v1.Namespace
       // specify hard limits on memory.
       .filter(rq => rq.spec.hard["limits.memory"] != null)
       .toArray()
-      .flatMap(rqs => rqs.length == 0 ? [ns] : []))
+      .flatMap(rqs => rqs.length == 0 ? [ns] : []));
 
 // Print.
-noQuotas.forEach(ns => console.log(ns.metadata.name))
-
+noQuotas.forEach(ns => console.log(ns.metadata.name));

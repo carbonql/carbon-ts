@@ -22,3 +22,27 @@ csrs.forEach(csrs => {
     console.log(`\t${request.spec.username}\t[${usages}]\t[${groups}]`);
   });
 });
+
+// This is equivalent to:
+//
+// const csrs =
+//   from csr in c.certificates.v1beta1.CertificateSigningRequest.list()
+//   let lastCondition =
+//       (from condition in csr.status.conditions
+//       where condition.type == "Approved" || condition.type == "Denied"
+//       select condition).LastOrDefault()
+//   let condition = lastCondition.type == "" ? new {type = "Pending"} : lastCondition
+//   group csr by condition.type into requests
+//   select new {
+//       status = requests.Key,
+//       requests = requests.ToArray(),
+//   };
+
+// csrs.forEach(csrs => {
+//   console.log(csrs.status);
+//   csrs.requests.forEach(({request}) => {
+//     const usages = request.spec.usages.sort().join(", ");
+//     const groups = request.spec.groups.sort().join(", ");
+//     console.log(`\t${request.spec.username}\t[${usages}]\t[${groups}]`);
+//   });
+// });

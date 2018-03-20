@@ -1,5 +1,5 @@
 import {Client, transform} from "../../src";
-const rbac = transform.rbacAuthorization
+const rbac = transform.rbacAuthorization;
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const subjectsWithSecretAccess = c.rbacAuthorization.v1beta1.Role
@@ -19,3 +19,16 @@ const subjectsWithSecretAccess = c.rbacAuthorization.v1beta1.Role
 
 // Print subjects.
 subjectsWithSecretAccess.forEach(subj => console.log(`${subj.kind}\t${subj.name}`));
+
+// Equivalent to:
+//
+// const rbac = transform.rbacAuthorization;
+
+// const c = Client.fromFile(<string>process.env.KUBECONFIG);
+// const subjectsWithSecretAccess =
+//   from role in c.rbacAuthorization.v1beta1.Role.list()
+//   from binding in c.rbacAuthorization.v1beta1.RoleBinding.list()
+//   where rbac.v1beta1.roleBinding.referencesRole(binding, role.metadata.name)
+//   select binding.subjects;
+
+// subjectsWithSecretAccess.forEach(subj => console.log(`${subj.kind}\t${subj.name}`));
