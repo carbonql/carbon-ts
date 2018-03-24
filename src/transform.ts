@@ -673,7 +673,7 @@ export namespace core {
           .list("default")
           .filter(p => syncQuery
             .from(selector)
-            .any(({key, value}) => p.metadata.labels[key] != value))
+            .any(({key, value}) => p.metadata.labels && p.metadata.labels[key] != value))
           .toArray()
           .map(pods => {return {service, pods}})
       }
