@@ -4,28 +4,42 @@ import {Client, query, k8s} from "../../src";
 import * as chalk from "chalk";
 import * as minimist from "minimist";
 
-const usage = `Usage: ktail [pod-regex] [--stream]`
+const usage = `Usage: ktail [pod-regex] [--stream] --all-namespaces`
 
 const argv = minimist(process.argv.slice(2));
 const stream = argv.stream != null;
 
-const podRegex =
-  argv._.length == 1
-  ? RegExp(".+", "g")
-  : RegExp(argv._[1], "g");
+Object.keys(argv).forEach(k => {
+  if (k != "_" && k != "stream" && k != "all-namespaces") {
+    console.log(`Unrecognized flag '${k}'`);
+    console.log(usage)
+    process.exit(1);
+  }
+});
+
+let podRegex: RegExp = RegExp(".+", "g");
+if (argv._.length > 0) {
+  podRegex = RegExp(argv._[0], "g");
+}
 
 // --------------------------------------------------------------------------
 // Get logs, tail.
 // --------------------------------------------------------------------------
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
-const currNs = c.kubeConfig.getCurrentContextObject().namespace || "default";
+
+// Set namespace to retreive pods from.
+const currNs = argv["all-namespaces"]
+  ? undefined
+  : c.kubeConfig.getCurrentContextObject().namespace || "default";
+
 c.core.v1.Pod
   // TODO: Change this when I fix the fact that `k8s.KubeConfig` does not retain
   // namespace.
   .list(currNs)
   .flatMap(pod => {
     // Ignore pod if it doesn't match the regex.
+
     if (!podRegex.test(pod.metadata.name)) return [];
 
     const logs =
