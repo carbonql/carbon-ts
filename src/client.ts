@@ -15,6 +15,10 @@ export class Client {
 
   private constructor(private _kc: k8s.KubeConfig) { }
 
+  get kubeConfig(): k8s.KubeConfig {
+    return this._kc;
+  }
+
   public core = {
     v1: {
       client: () =>

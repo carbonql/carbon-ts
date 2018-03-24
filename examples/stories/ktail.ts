@@ -19,10 +19,11 @@ const podRegex =
 // --------------------------------------------------------------------------
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
+const currNs = c.kubeConfig.getCurrentContextObject().namespace || "default";
 c.core.v1.Pod
   // TODO: Change this when I fix the fact that `k8s.KubeConfig` does not retain
   // namespace.
-  .list("default")
+  .list(currNs)
   .flatMap(pod => {
     // Ignore pod if it doesn't match the regex.
     if (!podRegex.test(pod.metadata.name)) return [];

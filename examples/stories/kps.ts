@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {Client, query, k8s} from "../../src";
 import * as syncQuery from 'linq';
 const tab = require("tab");
@@ -20,8 +22,9 @@ const getState = (status: k8s.IoK8sKubernetesPkgApiV1ContainerStatus) => {
 // --------------------------------------------------------------------------
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
+const currNs = c.kubeConfig.getCurrentContextObject().namespace || "default";
 const podSummaries = c.core.v1.Pod
-  .list()
+  .list(currNs)
   .flatMap(pod => {
     const statuses = syncQuery
       .from(pod.status.containerStatuses)

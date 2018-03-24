@@ -61,8 +61,9 @@ const filterAndColorize = (lines: string[]): string[][] => {
 // --------------------------------------------------------------------------
 
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
+const currNs = c.kubeConfig.getCurrentContextObject().namespace || "default";
 c.core.v1.Pod
-  .list("default")
+  .list(currNs)
   .flatMap(pod => {
     if (!podRegex.test(pod.metadata.name)) return [];
 
