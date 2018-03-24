@@ -4,18 +4,28 @@ import {Client, query, k8s} from "../../src";
 import * as chalk from "chalk";
 import * as minimist from "minimist";
 
-if (process.argv.length < 3) {
-  console.log(`Usage: kgrep <log-regex> [pod-regex] [--streaming]`)
+const usage = `Usage: kgrep <log-regex> [pod-regex] [--stream]`;
+
+const argv = minimist(process.argv.slice(2));
+if (argv.length < 1) {
+  console.log(usage);
   process.exit(1);
 }
 
-const argv = minimist(process.argv.slice(2));
+Object.keys(argv).forEach(k => {
+  if (k != "_" && k != "stream") {
+    console.log(`Unrecognized flag '${k}'`);
+    console.log(usage)
+    process.exit(1);
+  }
+})
+
 const stream = argv.stream != null;
 
 const logRegex = RegExp(argv._[0], "g");
 const podRegex =
   argv._.length == 1
-  ? RegExp(".+", "g")
+  ? RegExp(".*", "g")
   : RegExp(argv._[1], "g");
 
 // --------------------------------------------------------------------------
@@ -72,3 +82,4 @@ c.core.v1.Pod
       console.log(`${pod.metadata.name}: ${line}`)
     });
   });
+
