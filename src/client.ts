@@ -2,8 +2,10 @@ import * as fs from "fs";
 import * as k8s from '@carbonql/kubernetes-client-node';
 import * as path from "path";
 import * as http from "http";
+import * as request from "request";
 import * as rx from "rxjs/Rx";
 import * as promise from "bluebird";
+const byline = require("byline");
 
 export class Client {
   public static fromFile = (filename: string): Client => {
@@ -83,6 +85,9 @@ export class Client {
         },
         logs: (name: string, namespace: string, container?: string) => {
           return objAsObservable(this.core.v1.client().readCoreV1NamespacedPodLog(name, namespace, container))
+        },
+        logStream: (name: string, namespace: string, container?: string) => {
+          return streamPodLogs(name, namespace, this._kc, container);
         },
       },
       PodTemplate: {
@@ -556,6 +561,47 @@ const objAsObservable = <T>(
     .map(res => {
       return res.body;
     });
+}
+
+const streamPodLogs = (
+  name: string, namespace: string, kc: k8s.KubeConfig, container?: string
+): rx.Observable<string> => {
+  const logsPattern = `/api/v1/namespaces/${namespace}/pods/${name}/log`;
+  let url = kc.getCurrentCluster().server + logsPattern;
+
+  const queryParams: any = {
+    follow: true,
+  };
+  if (container != null) {
+    queryParams["container"] = container;
+  }
+  let headerParams: any = {};
+
+  let requestOptions: request.Options = {
+      method: 'GET',
+      qs: queryParams,
+      headers: headerParams,
+      uri: url,
+      useQuerystring: true,
+      json: true
+  };
+  kc.applyToRequest(requestOptions);
+
+  const logs = new rx.Subject<string>();
+  const stream = new byline.LineStream();
+  stream.on('data', (data: any) => {
+    logs.next(data.toString());
+  });
+
+  let req = request(requestOptions, (error, /*response, body*/) => {
+    if (error) {
+      logs.error(error);
+    }
+    logs.complete();
+  });
+  req.pipe(stream);
+
+  return logs;
 }
 
 export namespace kubeconfig {

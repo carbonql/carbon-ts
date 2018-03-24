@@ -129,6 +129,12 @@ const addLogsMethods = (
       paramsText: "name: string, namespace: string, container?: string",
       body: `return objAsObservable(this.${group}.${version}.client().read${ucfirst(group)}${ucfirst(version)}NamespacedPodLog(name, namespace, container))`,
     });
+
+    methods.push({
+      name: "logStream",
+      paramsText: "name: string, namespace: string, container?: string",
+      body: "return streamPodLogs(name, namespace, this._kc, container);",
+    });
   }
 }
 
