@@ -4,6 +4,19 @@ import {Client, query, k8s} from "../../src";
 import * as chalk from "chalk";
 import * as minimist from "minimist";
 
+// --------------------------------------------------------------------------
+// ktail, a Kubernetes-native, optionally-streaming version of `tail`.
+//
+// ktail makes it easy to tail logs across a an arbitrary number of pods, all at
+// once. Users provide a pod regex, which is used to decide which pods to
+// `tail`.
+//
+// In streaming mode, we will continuously tail the specified pod logs,
+// constantly outputting the results to console. Output of each pod logs are
+// batched into windows of 1 second to make the resulting groups of log output
+// somewhat contiguous.
+// --------------------------------------------------------------------------
+
 const usage = `Usage: ktail [pod-regex] [--stream] --all-namespaces`
 
 const argv = minimist(process.argv.slice(2));
@@ -34,19 +47,21 @@ const currNs = argv["all-namespaces"]
   : c.kubeConfig.getCurrentContextObject().namespace || "default";
 
 c.core.v1.Pod
-  // TODO: Change this when I fix the fact that `k8s.KubeConfig` does not retain
-  // namespace.
   .list(currNs)
   .flatMap(pod => {
     // Ignore pod if it doesn't match the regex.
-
     if (!podRegex.test(pod.metadata.name)) return [];
 
+    // Get a log stream if `--stream` was passed in, else just get the output of
+    // the standard `logs` request.
     const logs =
       stream
       ? c.core.v1.Pod.logStream(pod.metadata.name, pod.metadata.namespace)
       : c.core.v1.Pod.logs(pod.metadata.name, pod.metadata.namespace);
 
+    // For each particular stream of logs, emit output in windowed intervals of
+    // 1 second. This makes the logs slightly more contiguous, so that a bunch
+    // of logs from one pod end up output together.
     return logs
       .filter(logs => logs != null)
       .window(query.Observable.timer(0, 1000))

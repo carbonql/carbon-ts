@@ -4,6 +4,17 @@ import {Client, query, k8s} from "../../src";
 import * as chalk from "chalk";
 import * as minimist from "minimist";
 
+// --------------------------------------------------------------------------
+// kgrep, a Kubernetes-native, optionally-streaming version of `grep`.
+//
+// kgrep makes it easy to search logs across a an arbitrary number of pods, all
+// at once. Users provide the grep regex, which we use to search logs, and a pod
+// regex, which is used to decide which pods to search.
+//
+// In streaming mode, we will continuously search the specified pods for the
+// regex, constantly providing new results as the logs are populated.
+// --------------------------------------------------------------------------
+
 const usage = `Usage: kgrep <log-regex> [pod-regex] [--stream] [--all-namespaces]`;
 
 const argv = minimist(process.argv.slice(2));
@@ -70,13 +81,17 @@ const currNs = argv["all-namespaces"]
 c.core.v1.Pod
   .list(currNs)
   .flatMap(pod => {
+    // Ignore pod if it doesn't match the regex.
     if (!podRegex.test(pod.metadata.name)) return [];
 
+    // Get a log stream if `--stream` was passed in, else just get the output of
+    // the standard `logs` request.
     const logs =
       stream
       ? c.core.v1.Pod.logStream(pod.metadata.name, pod.metadata.namespace)
       : c.core.v1.Pod.logs(pod.metadata.name, pod.metadata.namespace);
 
+    // For each log line, colorize the part that was matched by the regex.
     return logs
       .filter(logs => logs != null)
       .map(logs => logs.split(/\r?\n/))
