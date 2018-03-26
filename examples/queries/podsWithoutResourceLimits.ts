@@ -1,5 +1,4 @@
 import {Client, query} from "../../src";
-import * as k8s from '@carbonql/kubernetes-client-node';
 
 //
 // Retrieve pods running on a node where memory pressure is high.

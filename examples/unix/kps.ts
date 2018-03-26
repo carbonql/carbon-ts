@@ -9,7 +9,7 @@ const tab = require("tab");
 // Helpers.
 // --------------------------------------------------------------------------
 
-const getState = (status: k8s.IoK8sKubernetesPkgApiV1ContainerStatus) => {
+const getState = (status: k8s.IoK8sApiCoreV1ContainerStatus) => {
   let state = "unknown";
   if (status.state.running)         state = "running";
   else if (status.state.terminated) state = "terminated";
