@@ -152,23 +152,33 @@ const addWatchMethods = (
   const nsWatch =
     watchEndpoints
       .where(watchEndpoint => {
-        // console.log(watchEndpoint[operationId]);
-        // console.log(`Namespaced${kind}`);
         return watchEndpoint[operationId].endsWith(`Namespaced${kind}List`)
       })
       .toArray();
   const nonNsWatch =
     watchEndpoints
       .where(watchEndpoint => {
-        // console.log(watchEndpoint[operationId]);
-        // console.log(`${kind}ForAllNamespaces`);
         return watchEndpoint[operationId].endsWith(`${kind}ListForAllNamespaces`)
       })
       .toArray();
   const isNsWatchList = nsWatch.length == 1 && nonNsWatch.length == 1;
 
-  // console.log(nsWatch);
-  // console.log(nonNsWatch);
+  const triple = `${ucfirst(ourGroupName)}${ucfirst(version)}${ucfirst(kind)}`;
+  let watchType = `k8s.IoK8sApi${triple}`;
+  switch (kind) {
+    case "CustomResourceDefinition":
+      watchType = `k8s.IoK8sApiextensionsApiserverPkgApis${triple}`;
+      break;
+    case "APIService":
+      watchType = `k8s.IoK8sKubeAggregatorPkgApis${triple}`;
+      break;
+    case "ClusterRoleBinding":
+    case "RoleBinding":
+    case "ClusterRole":
+    case "Role":
+      watchType = `k8s.IoK8sApiRbac${ucfirst(version)}${ucfirst(kind)}`;
+      break;
+  }
 
   if (isNsWatchList) {
     const nsPath = nsWatch[0].path.split("{namespace}");
@@ -177,8 +187,8 @@ const addWatchMethods = (
       name: "watch",
       paramsText: "namespace?: string",
       body: `return namespace
-            ? watchListAsObservable("${nsPath[0]}" + namespace + "${nsPath[1]}", this._kc)
-            : watchListAsObservable("${nonNsPath}", this._kc);`
+            ? watchListAsObservable<${watchType}>("${nsPath[0]}" + namespace + "${nsPath[1]}", this._kc)
+            : watchListAsObservable<${watchType}>("${nonNsPath}", this._kc);`
     });
   }
 
@@ -192,7 +202,7 @@ const addWatchMethods = (
     methods.push({
       name: "watch",
       paramsText: "",
-      body: `return watchListAsObservable("${watch.path}", this._kc);`
+      body: `return watchListAsObservable<${watchType}>("${watch.path}", this._kc);`
     });
   }
 }
