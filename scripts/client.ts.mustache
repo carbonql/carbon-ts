@@ -30,7 +30,7 @@ export class Client {
       {{kind}}: {
         {{#methods}}
         {{name}}: ({{paramsText}}) => {
-          {{body}}
+          {{{body}}}
         },
         {{/methods}}
       },
@@ -44,8 +44,10 @@ export class Client {
 }
 
 type Listable<T> = {items: T[]}
+type WatchEvent<T> = {object: T; type: "Added" | "Modified" | "Deleted";};
 type ApiResponseObj<T> = {response: http.ClientResponse; body: T;};
 type ApiResponseList<T> = {response: http.ClientResponse; body: Listable<T>;};
+type ApiResponseWatchList<T> = {response: http.ClientResponse; body: WatchEvent<T>;};
 
 const fromKubeConfig = (
   kc: k8s.KubeConfig, create: any,
@@ -62,6 +64,60 @@ const listAsObservable = <T>(
   return rx.Observable
     .fromPromise(p)
     .flatMap(res => res.body.items);
+}
+
+const watchListAsObservable = <T>(
+  watchPath: string, kc: k8s.KubeConfig,
+): rx.Observable<WatchEvent<T>> => {
+  const stream = new byline.LineStream();
+  const watch = new rx.Subject<WatchEvent<T>>();
+  stream.on('data', (data: any) => {
+    let obj = null;
+    if (data instanceof Buffer) {
+      obj = JSON.parse(data.toString());
+    } else {
+      obj = JSON.parse(data);
+    }
+    if (obj['type'] && obj['object']) {
+      watch.next(obj);
+    } else {
+      watch.error(`Unexpected object in watch list: ${obj}`);
+    }
+  });
+
+  //
+  // Set up request
+  //
+
+  const queryParams = {
+    watch: true
+  };
+  const headerParams: any = {};
+
+  const requestOptions: request.Options = {
+    method: 'GET',
+    qs: queryParams,
+    headers: headerParams,
+    uri: kc.getCurrentCluster().server + watchPath,
+    useQuerystring: true,
+    json: true
+  };
+  kc.applyToRequest(requestOptions);
+
+  //
+  // Send request, pipe results into the Rx subject.
+  //
+
+  let req = request(requestOptions, (error, /*response, body*/) => {
+    if (error) {
+      watch.error(error);
+    }
+    watch.complete();
+  });
+  req.pipe(stream);
+
+  // Return Rx subject.
+  return watch;
 }
 
 const objAsObservable = <T>(

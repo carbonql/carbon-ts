@@ -37,6 +37,11 @@ export class Client {
               : this.core.v1.client().listCoreV1ConfigMapForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/configmaps", this._kc)
+            : watchListAsObservable("/api/v1/watch/configmaps", this._kc);
+        },
       },
       Endpoints: {
         list: (namespace?: string) => {
@@ -45,6 +50,11 @@ export class Client {
               ? this.core.v1.client().listCoreV1NamespacedEndpoints(namespace)
               : this.core.v1.client().listCoreV1EndpointsForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/endpoints", this._kc)
+            : watchListAsObservable("/api/v1/watch/endpoints", this._kc);
         },
       },
       Event: {
@@ -55,6 +65,11 @@ export class Client {
               : this.core.v1.client().listCoreV1EventForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/events", this._kc)
+            : watchListAsObservable("/api/v1/watch/events", this._kc);
+        },
       },
       LimitRange: {
         list: (namespace?: string) => {
@@ -64,10 +79,18 @@ export class Client {
               : this.core.v1.client().listCoreV1LimitRangeForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/limitranges", this._kc)
+            : watchListAsObservable("/api/v1/watch/limitranges", this._kc);
+        },
       },
       Namespace: {
         list: () => {
           return listAsObservable(this.core.v1.client().listCoreV1Namespace());
+        },
+        watch: () => {
+          return watchListAsObservable("/api/v1/watch/namespaces", this._kc);
         },
       },
       PersistentVolumeClaim: {
@@ -78,6 +101,11 @@ export class Client {
               : this.core.v1.client().listCoreV1PersistentVolumeClaimForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/persistentvolumeclaims", this._kc)
+            : watchListAsObservable("/api/v1/watch/persistentvolumeclaims", this._kc);
+        },
       },
       Pod: {
         list: (namespace?: string) => {
@@ -86,6 +114,11 @@ export class Client {
               ? this.core.v1.client().listCoreV1NamespacedPod(namespace)
               : this.core.v1.client().listCoreV1PodForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/pods", this._kc)
+            : watchListAsObservable("/api/v1/watch/pods", this._kc);
         },
         logs: (name: string, namespace: string, container?: string) => {
           return objAsObservable(this.core.v1.client().readCoreV1NamespacedPodLog(name, namespace, container))
@@ -102,6 +135,11 @@ export class Client {
               : this.core.v1.client().listCoreV1PodTemplateForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/podtemplates", this._kc)
+            : watchListAsObservable("/api/v1/watch/podtemplates", this._kc);
+        },
       },
       ReplicationController: {
         list: (namespace?: string) => {
@@ -110,6 +148,11 @@ export class Client {
               ? this.core.v1.client().listCoreV1NamespacedReplicationController(namespace)
               : this.core.v1.client().listCoreV1ReplicationControllerForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/replicationcontrollers", this._kc)
+            : watchListAsObservable("/api/v1/watch/replicationcontrollers", this._kc);
         },
       },
       ResourceQuota: {
@@ -120,6 +163,11 @@ export class Client {
               : this.core.v1.client().listCoreV1ResourceQuotaForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/resourcequotas", this._kc)
+            : watchListAsObservable("/api/v1/watch/resourcequotas", this._kc);
+        },
       },
       Secret: {
         list: (namespace?: string) => {
@@ -128,6 +176,11 @@ export class Client {
               ? this.core.v1.client().listCoreV1NamespacedSecret(namespace)
               : this.core.v1.client().listCoreV1SecretForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/secrets", this._kc)
+            : watchListAsObservable("/api/v1/watch/secrets", this._kc);
         },
       },
       ServiceAccount: {
@@ -138,6 +191,11 @@ export class Client {
               : this.core.v1.client().listCoreV1ServiceAccountForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/serviceaccounts", this._kc)
+            : watchListAsObservable("/api/v1/watch/serviceaccounts", this._kc);
+        },
       },
       Service: {
         list: (namespace?: string) => {
@@ -147,15 +205,26 @@ export class Client {
               : this.core.v1.client().listCoreV1ServiceForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/api/v1/watch/namespaces/" + namespace + "/services", this._kc)
+            : watchListAsObservable("/api/v1/watch/services", this._kc);
+        },
       },
       Node: {
         list: () => {
           return listAsObservable(this.core.v1.client().listCoreV1Node());
         },
+        watch: () => {
+          return watchListAsObservable("/api/v1/watch/nodes", this._kc);
+        },
       },
       PersistentVolume: {
         list: () => {
           return listAsObservable(this.core.v1.client().listCoreV1PersistentVolume());
+        },
+        watch: () => {
+          return watchListAsObservable("/api/v1/watch/persistentvolumes", this._kc);
         },
       },
 
@@ -171,6 +240,9 @@ export class Client {
         list: () => {
           return listAsObservable(this.admissionregistration.v1alpha1.client().listAdmissionregistrationV1alpha1InitializerConfiguration());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/admissionregistration.k8s.io/v1alpha1/watch/initializerconfigurations", this._kc);
+        },
       },
 
     },
@@ -182,10 +254,16 @@ export class Client {
         list: () => {
           return listAsObservable(this.admissionregistration.v1beta1.client().listAdmissionregistrationV1beta1MutatingWebhookConfiguration());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/admissionregistration.k8s.io/v1beta1/watch/mutatingwebhookconfigurations", this._kc);
+        },
       },
       ValidatingWebhookConfiguration: {
         list: () => {
           return listAsObservable(this.admissionregistration.v1beta1.client().listAdmissionregistrationV1beta1ValidatingWebhookConfiguration());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/admissionregistration.k8s.io/v1beta1/watch/validatingwebhookconfigurations", this._kc);
         },
       },
 
@@ -201,6 +279,9 @@ export class Client {
         list: () => {
           return listAsObservable(this.apiextensions.v1beta1.client().listApiextensionsV1beta1CustomResourceDefinition());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/apiextensions.k8s.io/v1beta1/watch/customresourcedefinitions", this._kc);
+        },
       },
 
     },
@@ -214,6 +295,9 @@ export class Client {
       APIService: {
         list: () => {
           return listAsObservable(this.apiregistration.v1beta1.client().listApiregistrationV1beta1APIService());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/apiregistration.k8s.io/v1beta1/watch/apiservices", this._kc);
         },
       },
 
@@ -233,6 +317,11 @@ export class Client {
               : this.apps.v1.client().listAppsV1ControllerRevisionForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1/watch/namespaces/" + namespace + "/controllerrevisions", this._kc)
+            : watchListAsObservable("/apis/apps/v1/watch/controllerrevisions", this._kc);
+        },
       },
       DaemonSet: {
         list: (namespace?: string) => {
@@ -241,6 +330,11 @@ export class Client {
               ? this.apps.v1.client().listAppsV1NamespacedDaemonSet(namespace)
               : this.apps.v1.client().listAppsV1DaemonSetForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1/watch/namespaces/" + namespace + "/daemonsets", this._kc)
+            : watchListAsObservable("/apis/apps/v1/watch/daemonsets", this._kc);
         },
       },
       Deployment: {
@@ -251,6 +345,11 @@ export class Client {
               : this.apps.v1.client().listAppsV1DeploymentForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1/watch/namespaces/" + namespace + "/deployments", this._kc)
+            : watchListAsObservable("/apis/apps/v1/watch/deployments", this._kc);
+        },
       },
       ReplicaSet: {
         list: (namespace?: string) => {
@@ -260,6 +359,11 @@ export class Client {
               : this.apps.v1.client().listAppsV1ReplicaSetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1/watch/namespaces/" + namespace + "/replicasets", this._kc)
+            : watchListAsObservable("/apis/apps/v1/watch/replicasets", this._kc);
+        },
       },
       StatefulSet: {
         list: (namespace?: string) => {
@@ -268,6 +372,11 @@ export class Client {
               ? this.apps.v1.client().listAppsV1NamespacedStatefulSet(namespace)
               : this.apps.v1.client().listAppsV1StatefulSetForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1/watch/namespaces/" + namespace + "/statefulsets", this._kc)
+            : watchListAsObservable("/apis/apps/v1/watch/statefulsets", this._kc);
         },
       },
 
@@ -284,6 +393,11 @@ export class Client {
               : this.apps.v1beta1.client().listAppsV1beta1ControllerRevisionForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta1/watch/namespaces/" + namespace + "/controllerrevisions", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta1/watch/controllerrevisions", this._kc);
+        },
       },
       Deployment: {
         list: (namespace?: string) => {
@@ -293,6 +407,11 @@ export class Client {
               : this.apps.v1beta1.client().listAppsV1beta1DeploymentForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta1/watch/namespaces/" + namespace + "/deployments", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta1/watch/deployments", this._kc);
+        },
       },
       StatefulSet: {
         list: (namespace?: string) => {
@@ -301,6 +420,11 @@ export class Client {
               ? this.apps.v1beta1.client().listAppsV1beta1NamespacedStatefulSet(namespace)
               : this.apps.v1beta1.client().listAppsV1beta1StatefulSetForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta1/watch/namespaces/" + namespace + "/statefulsets", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta1/watch/statefulsets", this._kc);
         },
       },
 
@@ -317,6 +441,11 @@ export class Client {
               : this.apps.v1beta2.client().listAppsV1beta2ControllerRevisionForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta2/watch/namespaces/" + namespace + "/controllerrevisions", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta2/watch/controllerrevisions", this._kc);
+        },
       },
       DaemonSet: {
         list: (namespace?: string) => {
@@ -325,6 +454,11 @@ export class Client {
               ? this.apps.v1beta2.client().listAppsV1beta2NamespacedDaemonSet(namespace)
               : this.apps.v1beta2.client().listAppsV1beta2DaemonSetForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta2/watch/namespaces/" + namespace + "/daemonsets", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta2/watch/daemonsets", this._kc);
         },
       },
       Deployment: {
@@ -335,6 +469,11 @@ export class Client {
               : this.apps.v1beta2.client().listAppsV1beta2DeploymentForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta2/watch/namespaces/" + namespace + "/deployments", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta2/watch/deployments", this._kc);
+        },
       },
       ReplicaSet: {
         list: (namespace?: string) => {
@@ -344,6 +483,11 @@ export class Client {
               : this.apps.v1beta2.client().listAppsV1beta2ReplicaSetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta2/watch/namespaces/" + namespace + "/replicasets", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta2/watch/replicasets", this._kc);
+        },
       },
       StatefulSet: {
         list: (namespace?: string) => {
@@ -352,6 +496,11 @@ export class Client {
               ? this.apps.v1beta2.client().listAppsV1beta2NamespacedStatefulSet(namespace)
               : this.apps.v1beta2.client().listAppsV1beta2StatefulSetForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/apps/v1beta2/watch/namespaces/" + namespace + "/statefulsets", this._kc)
+            : watchListAsObservable("/apis/apps/v1beta2/watch/statefulsets", this._kc);
         },
       },
 
@@ -371,6 +520,11 @@ export class Client {
               : this.autoscaling.v1.client().listAutoscalingV1HorizontalPodAutoscalerForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/autoscaling/v1/watch/namespaces/" + namespace + "/horizontalpodautoscalers", this._kc)
+            : watchListAsObservable("/apis/autoscaling/v1/watch/horizontalpodautoscalers", this._kc);
+        },
       },
 
     },
@@ -385,6 +539,11 @@ export class Client {
               ? this.autoscaling.v2beta1.client().listAutoscalingV2beta1NamespacedHorizontalPodAutoscaler(namespace)
               : this.autoscaling.v2beta1.client().listAutoscalingV2beta1HorizontalPodAutoscalerForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/autoscaling/v2beta1/watch/namespaces/" + namespace + "/horizontalpodautoscalers", this._kc)
+            : watchListAsObservable("/apis/autoscaling/v2beta1/watch/horizontalpodautoscalers", this._kc);
         },
       },
 
@@ -404,6 +563,11 @@ export class Client {
               : this.batch.v1.client().listBatchV1JobForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/batch/v1/watch/namespaces/" + namespace + "/jobs", this._kc)
+            : watchListAsObservable("/apis/batch/v1/watch/jobs", this._kc);
+        },
       },
 
     },
@@ -418,6 +582,11 @@ export class Client {
               ? this.batch.v1beta1.client().listBatchV1beta1NamespacedCronJob(namespace)
               : this.batch.v1beta1.client().listBatchV1beta1CronJobForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/batch/v1beta1/watch/namespaces/" + namespace + "/cronjobs", this._kc)
+            : watchListAsObservable("/apis/batch/v1beta1/watch/cronjobs", this._kc);
         },
       },
 
@@ -434,6 +603,11 @@ export class Client {
               : this.batch.v2alpha1.client().listBatchV2alpha1CronJobForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/batch/v2alpha1/watch/namespaces/" + namespace + "/cronjobs", this._kc)
+            : watchListAsObservable("/apis/batch/v2alpha1/watch/cronjobs", this._kc);
+        },
       },
 
     },
@@ -447,6 +621,9 @@ export class Client {
       CertificateSigningRequest: {
         list: () => {
           return listAsObservable(this.certificates.v1beta1.client().listCertificatesV1beta1CertificateSigningRequest());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/certificates.k8s.io/v1beta1/watch/certificatesigningrequests", this._kc);
         },
       },
 
@@ -466,6 +643,11 @@ export class Client {
               : this.events.v1beta1.client().listEventsV1beta1EventForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/events.k8s.io/v1beta1/watch/namespaces/" + namespace + "/events", this._kc)
+            : watchListAsObservable("/apis/events.k8s.io/v1beta1/watch/events", this._kc);
+        },
       },
 
     },
@@ -484,6 +666,11 @@ export class Client {
               : this.extensions.v1beta1.client().listExtensionsV1beta1DaemonSetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/extensions/v1beta1/watch/namespaces/" + namespace + "/daemonsets", this._kc)
+            : watchListAsObservable("/apis/extensions/v1beta1/watch/daemonsets", this._kc);
+        },
       },
       Deployment: {
         list: (namespace?: string) => {
@@ -492,6 +679,11 @@ export class Client {
               ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedDeployment(namespace)
               : this.extensions.v1beta1.client().listExtensionsV1beta1DeploymentForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/extensions/v1beta1/watch/namespaces/" + namespace + "/deployments", this._kc)
+            : watchListAsObservable("/apis/extensions/v1beta1/watch/deployments", this._kc);
         },
       },
       Ingress: {
@@ -502,6 +694,11 @@ export class Client {
               : this.extensions.v1beta1.client().listExtensionsV1beta1IngressForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/extensions/v1beta1/watch/namespaces/" + namespace + "/ingresses", this._kc)
+            : watchListAsObservable("/apis/extensions/v1beta1/watch/ingresses", this._kc);
+        },
       },
       NetworkPolicy: {
         list: (namespace?: string) => {
@@ -510,6 +707,11 @@ export class Client {
               ? this.extensions.v1beta1.client().listExtensionsV1beta1NamespacedNetworkPolicy(namespace)
               : this.extensions.v1beta1.client().listExtensionsV1beta1NetworkPolicyForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/extensions/v1beta1/watch/namespaces/" + namespace + "/networkpolicies", this._kc)
+            : watchListAsObservable("/apis/extensions/v1beta1/watch/networkpolicies", this._kc);
         },
       },
       ReplicaSet: {
@@ -520,10 +722,18 @@ export class Client {
               : this.extensions.v1beta1.client().listExtensionsV1beta1ReplicaSetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/extensions/v1beta1/watch/namespaces/" + namespace + "/replicasets", this._kc)
+            : watchListAsObservable("/apis/extensions/v1beta1/watch/replicasets", this._kc);
+        },
       },
       PodSecurityPolicy: {
         list: () => {
           return listAsObservable(this.extensions.v1beta1.client().listExtensionsV1beta1PodSecurityPolicy());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/extensions/v1beta1/watch/podsecuritypolicies", this._kc);
         },
       },
 
@@ -543,6 +753,11 @@ export class Client {
               : this.networking.v1.client().listNetworkingV1NetworkPolicyForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/networking.k8s.io/v1/watch/namespaces/" + namespace + "/networkpolicies", this._kc)
+            : watchListAsObservable("/apis/networking.k8s.io/v1/watch/networkpolicies", this._kc);
+        },
       },
 
     },
@@ -561,6 +776,11 @@ export class Client {
               : this.policy.v1beta1.client().listPolicyV1beta1PodDisruptionBudgetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/policy/v1beta1/watch/namespaces/" + namespace + "/poddisruptionbudgets", this._kc)
+            : watchListAsObservable("/apis/policy/v1beta1/watch/poddisruptionbudgets", this._kc);
+        },
       },
 
     },
@@ -575,10 +795,16 @@ export class Client {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1.client().listRbacAuthorizationV1ClusterRoleBinding());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/clusterrolebindings", this._kc);
+        },
       },
       ClusterRole: {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1.client().listRbacAuthorizationV1ClusterRole());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/clusterroles", this._kc);
         },
       },
       RoleBinding: {
@@ -589,6 +815,11 @@ export class Client {
               : this.rbacAuthorization.v1.client().listRbacAuthorizationV1RoleBindingForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/namespaces/" + namespace + "/rolebindings", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/rolebindings", this._kc);
+        },
       },
       Role: {
         list: (namespace?: string) => {
@@ -597,6 +828,11 @@ export class Client {
               ? this.rbacAuthorization.v1.client().listRbacAuthorizationV1NamespacedRole(namespace)
               : this.rbacAuthorization.v1.client().listRbacAuthorizationV1RoleForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/namespaces/" + namespace + "/roles", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1/watch/roles", this._kc);
         },
       },
 
@@ -609,10 +845,16 @@ export class Client {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1ClusterRoleBinding());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/clusterrolebindings", this._kc);
+        },
       },
       ClusterRole: {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1ClusterRole());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/clusterroles", this._kc);
         },
       },
       RoleBinding: {
@@ -623,6 +865,11 @@ export class Client {
               : this.rbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1RoleBindingForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/namespaces/" + namespace + "/rolebindings", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/rolebindings", this._kc);
+        },
       },
       Role: {
         list: (namespace?: string) => {
@@ -631,6 +878,11 @@ export class Client {
               ? this.rbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1NamespacedRole(namespace)
               : this.rbacAuthorization.v1alpha1.client().listRbacAuthorizationV1alpha1RoleForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/namespaces/" + namespace + "/roles", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1alpha1/watch/roles", this._kc);
         },
       },
 
@@ -643,10 +895,16 @@ export class Client {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1ClusterRoleBinding());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/clusterrolebindings", this._kc);
+        },
       },
       ClusterRole: {
         list: () => {
           return listAsObservable(this.rbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1ClusterRole());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/clusterroles", this._kc);
         },
       },
       RoleBinding: {
@@ -657,6 +915,11 @@ export class Client {
               : this.rbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1RoleBindingForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/namespaces/" + namespace + "/rolebindings", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/rolebindings", this._kc);
+        },
       },
       Role: {
         list: (namespace?: string) => {
@@ -665,6 +928,11 @@ export class Client {
               ? this.rbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1NamespacedRole(namespace)
               : this.rbacAuthorization.v1beta1.client().listRbacAuthorizationV1beta1RoleForAllNamespaces()
           );
+        },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/namespaces/" + namespace + "/roles", this._kc)
+            : watchListAsObservable("/apis/rbac.authorization.k8s.io/v1beta1/watch/roles", this._kc);
         },
       },
 
@@ -679,6 +947,9 @@ export class Client {
       PriorityClass: {
         list: () => {
           return listAsObservable(this.scheduling.v1alpha1.client().listSchedulingV1alpha1PriorityClass());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/scheduling.k8s.io/v1alpha1/watch/priorityclasses", this._kc);
         },
       },
 
@@ -698,6 +969,11 @@ export class Client {
               : this.settings.v1alpha1.client().listSettingsV1alpha1PodPresetForAllNamespaces()
           );
         },
+        watch: (namespace?: string) => {
+          return namespace
+            ? watchListAsObservable("/apis/settings.k8s.io/v1alpha1/watch/namespaces/" + namespace + "/podpresets", this._kc)
+            : watchListAsObservable("/apis/settings.k8s.io/v1alpha1/watch/podpresets", this._kc);
+        },
       },
 
     },
@@ -712,6 +988,9 @@ export class Client {
         list: () => {
           return listAsObservable(this.storage.v1.client().listStorageV1StorageClass());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/storage.k8s.io/v1/watch/storageclasses", this._kc);
+        },
       },
 
     },
@@ -722,6 +1001,9 @@ export class Client {
       VolumeAttachment: {
         list: () => {
           return listAsObservable(this.storage.v1alpha1.client().listStorageV1alpha1VolumeAttachment());
+        },
+        watch: () => {
+          return watchListAsObservable("/apis/storage.k8s.io/v1alpha1/watch/volumeattachments", this._kc);
         },
       },
 
@@ -734,6 +1016,9 @@ export class Client {
         list: () => {
           return listAsObservable(this.storage.v1beta1.client().listStorageV1beta1StorageClass());
         },
+        watch: () => {
+          return watchListAsObservable("/apis/storage.k8s.io/v1beta1/watch/storageclasses", this._kc);
+        },
       },
 
     },
@@ -742,8 +1027,10 @@ export class Client {
 }
 
 type Listable<T> = {items: T[]}
+type WatchEvent<T> = {object: T; type: "Added" | "Modified" | "Deleted";};
 type ApiResponseObj<T> = {response: http.ClientResponse; body: T;};
 type ApiResponseList<T> = {response: http.ClientResponse; body: Listable<T>;};
+type ApiResponseWatchList<T> = {response: http.ClientResponse; body: WatchEvent<T>;};
 
 const fromKubeConfig = (
   kc: k8s.KubeConfig, create: any,
@@ -760,6 +1047,60 @@ const listAsObservable = <T>(
   return rx.Observable
     .fromPromise(p)
     .flatMap(res => res.body.items);
+}
+
+const watchListAsObservable = <T>(
+  watchPath: string, kc: k8s.KubeConfig,
+): rx.Observable<WatchEvent<T>> => {
+  const stream = new byline.LineStream();
+  const watch = new rx.Subject<WatchEvent<T>>();
+  stream.on('data', (data: any) => {
+    let obj = null;
+    if (data instanceof Buffer) {
+      obj = JSON.parse(data.toString());
+    } else {
+      obj = JSON.parse(data);
+    }
+    if (obj['type'] && obj['object']) {
+      watch.next(obj);
+    } else {
+      watch.error(`Unexpected object in watch list: ${obj}`);
+    }
+  });
+
+  //
+  // Set up request
+  //
+
+  const queryParams = {
+    watch: true
+  };
+  const headerParams: any = {};
+
+  const requestOptions: request.Options = {
+    method: 'GET',
+    qs: queryParams,
+    headers: headerParams,
+    uri: kc.getCurrentCluster().server + watchPath,
+    useQuerystring: true,
+    json: true
+  };
+  kc.applyToRequest(requestOptions);
+
+  //
+  // Send request, pipe results into the Rx subject.
+  //
+
+  let req = request(requestOptions, (error, /*response, body*/) => {
+    if (error) {
+      watch.error(error);
+    }
+    watch.complete();
+  });
+  req.pipe(stream);
+
+  // Return Rx subject.
+  return watch;
 }
 
 const objAsObservable = <T>(

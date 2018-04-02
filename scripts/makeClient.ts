@@ -7,9 +7,11 @@ const groupVersionKind = "x-kubernetes-group-version-kind";
 const k8sAction = "x-kubernetes-action";
 const operationId = "operationId";
 
-//
+const watchListAction = "watchlist";
+
+// --------------------------------------------------------------------------
 // Helper interfaces.
-//
+// --------------------------------------------------------------------------
 
 interface GroupConfig {
   readonly group: string
@@ -138,9 +140,66 @@ const addLogsMethods = (
   }
 }
 
-//
+const addWatchMethods = (
+  methods: MethodConfig[], ourGroupName: string, version: string, kind: string,
+  endpoints: linq.IEnumerable<any>,
+) => {
+  const watchEndpoints = endpoints
+    .where(endpoint => endpoint[k8sAction] == watchListAction);
+
+  // console.log(watchEndpoints.toArray());
+
+  const nsWatch =
+    watchEndpoints
+      .where(watchEndpoint => {
+        // console.log(watchEndpoint[operationId]);
+        // console.log(`Namespaced${kind}`);
+        return watchEndpoint[operationId].endsWith(`Namespaced${kind}List`)
+      })
+      .toArray();
+  const nonNsWatch =
+    watchEndpoints
+      .where(watchEndpoint => {
+        // console.log(watchEndpoint[operationId]);
+        // console.log(`${kind}ForAllNamespaces`);
+        return watchEndpoint[operationId].endsWith(`${kind}ListForAllNamespaces`)
+      })
+      .toArray();
+  const isNsWatchList = nsWatch.length == 1 && nonNsWatch.length == 1;
+
+  // console.log(nsWatch);
+  // console.log(nonNsWatch);
+
+  if (isNsWatchList) {
+    const nsPath = nsWatch[0].path.split("{namespace}");
+    const nonNsPath = nonNsWatch[0].path;
+    methods.push({
+      name: "watch",
+      paramsText: "namespace?: string",
+      body: `return namespace
+            ? watchListAsObservable("${nsPath[0]}" + namespace + "${nsPath[1]}", this._kc)
+            : watchListAsObservable("${nonNsPath}", this._kc);`
+    });
+  }
+
+  const isNonNsWatchList = watchEndpoints
+    .where(watchEndpoint =>
+      watchEndpoint[operationId] == `watch${ucfirst(ourGroupName)}${ucfirst(version)}${ucfirst(kind)}List`)
+    .toArray();
+
+  if (isNonNsWatchList.length == 1) {
+    const watch = isNonNsWatchList[0];
+    methods.push({
+      name: "watch",
+      paramsText: "",
+      body: `return watchListAsObservable("${watch.path}", this._kc);`
+    });
+  }
+}
+
+// --------------------------------------------------------------------------
 // Fill in Mustache template.
-//
+// --------------------------------------------------------------------------
 
 const swagger = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 
@@ -148,8 +207,17 @@ const paths = swagger.paths;
 const groups: GroupConfig[] = linq
   // Find all GET endpoints that return lists of resources.
   .from(Object.keys(paths))
-  .select(path => paths[path]["get"])
-  .where(get => get != null && get[k8sAction] == "list")
+  .select(path => {
+    const get = paths[path]["get"];
+    //
+    // NOTE: We're adding the path here for convenience later.
+    //
+    if (get != null) {
+      get.path = path;
+    }
+    return get;
+  })
+  .where(get => get != null && (get[k8sAction] == "list" || get[k8sAction] == watchListAction))
   .select(get => {
     // For historical reasons, the group `core` is denoted by the empty string.
     // Add this explicitly.
@@ -185,6 +253,7 @@ const groups: GroupConfig[] = linq
 
             addNsList(methods, ourGroupName, version, kind, operations);
             addNonNsList(methods, ourGroupName, version, kind, operations);
+            addWatchMethods(methods, ourGroupName, version, kind, endpoints);
             addLogsMethods(methods, group, version, kind);
 
             return {
