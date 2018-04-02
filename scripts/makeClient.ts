@@ -211,7 +211,7 @@ const groups: GroupConfig[] = linq
   .toArray();
 
 const render = mustache.render(
-  fs.readFileSync("scripts/template.ts.mustache").toString(),
+  fs.readFileSync("scripts/client.ts.mustache").toString(),
   {groups: groups});
 
 console.log(render);
