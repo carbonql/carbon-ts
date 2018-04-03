@@ -1027,7 +1027,7 @@ export class Client {
 }
 
 type Listable<T> = {items: T[]}
-type WatchEvent<T> = {object: T; type: "Added" | "Modified" | "Deleted";};
+export type WatchEvent<T> = {object: T; type: "Added" | "Modified" | "Deleted";};
 type ApiResponseObj<T> = {response: http.ClientResponse; body: T;};
 type ApiResponseList<T> = {response: http.ClientResponse; body: Listable<T>;};
 type ApiResponseWatchList<T> = {response: http.ClientResponse; body: WatchEvent<T>;};

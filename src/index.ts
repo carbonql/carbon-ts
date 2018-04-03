@@ -9,4 +9,4 @@ export {transform};
 import * as query from 'rxjs/Rx';
 export {query};
 
-export {Client} from './client';
+export {Client, WatchEvent} from './client';
