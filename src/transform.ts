@@ -660,22 +660,67 @@ export namespace core {
         });
       }
 
-      export const getTargetedPods = (
-        c: client.Client, service: k8s.IoK8sApiCoreV1Service
-      ): query.Observable<{service: k8s.IoK8sApiCoreV1Service; pods: k8s.IoK8sApiCoreV1Pod[];}> => {
+      export const targetsPod = (
+        service: k8s.IoK8sApiCoreV1Service, pod: k8s.IoK8sApiCoreV1Pod,
+      ): boolean => {
         const selector = service.spec.selector;
         // Service doesn't target any pods.
         if (selector == null) {
-          return query.Observable.empty();
+          return false;
         }
 
+        return syncQuery
+          .from(service.spec.selector)
+          .all(({key, value}) =>
+            pod.metadata.labels != null &&
+            pod.metadata.labels[key] == value)
+      }
+
+      export const listTargetedPods = (
+        c: client.Client, service: k8s.IoK8sApiCoreV1Service
+      ): query.Observable<k8s.IoK8sApiCoreV1Pod[]> =>
+        c.core.v1.Pod
+          .list(service.metadata.namespace)
+          .filter(pod => targetsPod(service, pod))
+          .toArray();
+
+      export interface PodWatchListUpdate {
+        readonly currentPodUpdate: client.WatchEvent<k8s.IoK8sApiCoreV1Pod>;
+        readonly pods: Map<string, k8s.IoK8sApiCoreV1Pod>;
+      }
+
+      export const watchTargetedPods = (
+        c: client.Client, service: k8s.IoK8sApiCoreV1Service
+      ): query.Observable<PodWatchListUpdate> => {
+        const pods = new Map<string, k8s.IoK8sApiCoreV1Pod>();
         return c.core.v1.Pod
-          .list("default")
-          .filter(p => syncQuery
-            .from(selector)
-            .any(({key, value}) => p.metadata.labels && p.metadata.labels[key] != value))
-          .toArray()
-          .map(pods => {return {service, pods}})
+          .watch(service.metadata.namespace)
+          .flatMap(currentPodUpdate => {
+            const key = currentPodUpdate.object.metadata.name;
+            const targeted = targetsPod(service, currentPodUpdate.object);
+            if (!targeted && pods.has(key)) {
+              // It was previously targeted, but the labels have changed such
+              // that it isn't anymore. Mark as deleted, and report.
+              pods.delete(key);
+              return [{pods, currentPodUpdate}];
+            } else if (!targeted) {
+              // It is not currently targeted.
+              return [];
+            }
+
+            // Mark the update appropriately.
+            switch (currentPodUpdate.type) {
+              case "MODIFIED":
+              case "ADDED":
+                pods.set(key, currentPodUpdate.object)
+                break;
+              default:
+                pods.delete(key);
+                break;
+            }
+
+            return [{pods, currentPodUpdate}];
+          })
       }
     }
 

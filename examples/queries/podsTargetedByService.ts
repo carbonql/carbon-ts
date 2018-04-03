@@ -7,7 +7,15 @@ import {Client, query, transform} from "../../src";
 const c = Client.fromFile(<string>process.env.KUBECONFIG);
 const servicesAndPods = c.core.v1.Service
   .list("default")
-  .flatMap(service => transform.core.v1.service.getTargetedPods(c, service));
+  .flatMap(service =>
+    transform.core.v1.service
+      .listTargetedPods(c, service)
+      .flatMap(pods => {
+        return [{
+          service: service,
+          pods: pods,
+        }];
+      }));
 
 //
 // Outputs a list of services and the pods they target. Something like:
