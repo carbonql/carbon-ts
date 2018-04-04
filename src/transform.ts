@@ -722,6 +722,78 @@ export namespace core {
             return [{pods, currentPodUpdate}];
           })
       }
+
+      export interface PodEndpointUpdate {
+        podName: string;
+        ports: k8s.IoK8sApiCoreV1EndpointPort[];
+      }
+
+      export interface EndpointsWatchListUpdate {
+        readonly currentEndpointUpdate: client.WatchEvent<PodEndpointUpdate>;
+        readonly endpoints: Map<string, k8s.IoK8sApiCoreV1EndpointPort[]>;
+      }
+
+      export const watchEndpointsByPod = (
+        c: client.Client, service: k8s.IoK8sApiCoreV1Service,
+      ): query.Observable<EndpointsWatchListUpdate> => {
+        const endpointSet = new Map<string, k8s.IoK8sApiCoreV1EndpointPort[]>();
+        return c.core.v1.Endpoints
+          .watch(service.metadata.namespace)
+          .filter(({object: endpoints}) =>
+            endpoints.metadata.name == service.metadata.name)
+          .flatMap(update => {
+            const {object: endpoints, type} = update;
+            const subsets = endpoints.subsets == null ? [] : endpoints.subsets;
+            // Rearrange the unintuitively-structured endpoints object to an
+            // object roughly like: {podName, ports}.
+            //
+            // NOTE: It's very important this query go inside this `switchMap`.
+            // If it doesn't, the `reduce` below is unbounded and will never
+            // return (essentially: each `...subsets` below will depend on all
+            // endpoints ad infinatum, rather than those in `endpoints` above) .
+            return query.Observable
+              .of(...subsets)
+              // Each "subset" is a basically a collection of pod addresses that
+              // expose the same ports, organized as `{port[], podAddress[]}`.
+              // Flatten this to `{podAddress, port[]}[]`. This allows us to
+              // aggregate by pod name.
+              .flatMap(({addresses, ports}) =>
+                query.Observable
+                  .of(...addresses)
+                  .flatMap(address => [{podName: address.targetRef.name, ports}]))
+              // Group by pod name.
+              .groupBy(({podName}) => podName)
+              // Flatten. Each `addressGroup` will be an array `{podName,
+              // ports[]}[]`, where `podName` is the same in each element. Here
+              // we flatten it to be `{podName, ports[]}`, i.e., a single object
+              // containing all ports that (the endpoint believes) are exposed
+              // on `podName`.
+              .flatMap(addressGroup =>
+                addressGroup
+                  .reduce((acc: k8s.IoK8sApiCoreV1EndpointPort[], {ports}) =>
+                    acc.concat(ports), [])
+                  .flatMap(ports => {
+                    switch (type) {
+                      case "ADDED":
+                      case "MODIFIED":
+                        endpointSet.set(addressGroup.key, ports);
+                        break;
+                      default:
+                        endpointSet.delete(addressGroup.key);
+                    }
+                    return [{
+                      endpoints: endpointSet,
+                      currentEndpointUpdate: {
+                        type: type,
+                        object: {
+                          podName: addressGroup.key,
+                          ports: ports,
+                        },
+                      },
+                    }];
+                  }));
+          });
+      }
     }
 
     export namespace volume {
