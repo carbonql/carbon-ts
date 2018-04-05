@@ -21,9 +21,7 @@ class ServiceSummary {
   }
 
   public render(): string[][] {
-    let rows = [
-      [`${this._service.metadata.namespace}/${this._service.metadata.name}`, "", ""],
-    ];
+    let rows: string[][] = [];
 
     const podNames = new Set([...this._pods].map(([_, pod]) => pod.metadata.name));
     const endpointTargets = new Set([...this._endpoints].map(([podName]) => podName));
@@ -48,19 +46,19 @@ class ServiceSummary {
         const eps = (this._endpoints.get(podName) || [])
           .map(ep => ep.port)
           .join(",");
-        rows.push(["", `[${eps}]`, podName]);
+        rows.push([`[${eps}]`, podName]);
       });
 
     [...danglingPods]
       .sort((name1, name2) => name1.localeCompare(name2))
       .forEach(podName => {
-        rows.push(["", "", podName]);
+        rows.push(["", podName]);
       });
 
     [...danglingEndpoints]
       .sort((name1, name2) => name1.localeCompare(name2))
       .forEach(podName => {
-        rows.push(["", `${podName} (does not exist)`, ""]);
+        rows.push([`${podName} (does not exist)`, ""]);
       })
 
     return rows;
@@ -71,31 +69,128 @@ class ServiceSummary {
 // Screen implementation.
 // --------------------------------------------------------------------------
 
-var blessed = require('blessed');
-var sc = new blessed.Screen;
+var blessed = require('blessed')
+, contrib = require('blessed-contrib')
+, screen = blessed.screen();
 
-// Quit on Escape, q, or Control-C.
-sc.key(['escape', 'q', 'C-c'], function() {
+screen.key(['escape', 'q', 'C-c'], function(/*ch: any, key: any*/) {
+  serviceMenu.destroy();
+  mainMenu.destroy();
+  screen.destroy();
   return process.exit(0);
 });
 
-// Create a table
-var table = blessed.listtable({
-  parent: sc,
-  left: 0,
-  data: [ServiceSummary.header],
-  border: 'line',
-  align: 'center',
-  keys: true,
-  width: '100%',
-  height: '100%',
-  vi: false,
-  name:'table'
-});
+// --------------------------------------------------------------------------
+// Main menu.
+// --------------------------------------------------------------------------
 
-// Focus table, and render results to screen
-table.focus();
-sc.render();
+namespace mainMenu {
+  const table = contrib.table(
+    { keys: true
+    , fg: 'white'
+    , selectedFg: 'white'
+    , selectedBg: 'blue'
+    , interactive: true
+    , label: 'Service Monitor'
+    , width: 80
+    , height: '100%'
+    , border: {type: "line", fg: "cyan"}
+    , columnSpacing: 3 //in chars
+    , columnWidth: [80-"status".length-10, "status".length+3] /*in chars*/
+
+    , vi: true });
+
+  table.rows.on('select', (item: any, /*index: any*/) => {
+    const name = (<string>item.getText()).trim();
+    serviceMenu.focus(name);
+    screen.render();
+  });
+
+  export const focus = () => {
+    screen.append(table); //must append before setting data
+
+    //allow control the table with the keyboard
+    table.focus();
+  }
+
+  export const setData = (data: string[][]) => {
+    table.setData(
+      { headers: ['Service name', 'Status']
+      , data: data });
+
+    screen.render();
+  }
+
+  export const destroy = () => { table.destroy(); }
+}
+
+// --------------------------------------------------------------------------
+// Service menu.
+// --------------------------------------------------------------------------
+
+namespace serviceMenu {
+  const serviceMenus = new Map<string, any>();
+
+  export const getServiceMenu = (key: string) => {
+    let table = null;
+    if ((table = serviceMenus.get(key)) == null) {
+      table = contrib.table(
+        { keys: true
+        , fg: 'white'
+        , selectedFg: 'white'
+        , selectedBg: 'blue'
+        , interactive: true
+        , width: 80
+        , height: '100%'
+        , border: {type: "line", fg: "cyan"}
+        , columnSpacing: 3 //in chars
+        , columnWidth: [40, 40] /*in chars*/
+
+        , vi: true });
+
+      serviceMenus.set(key, table);
+
+      table.setLabel(key);
+    }
+
+    let summary = summaries.get(key);
+    return {table, summary};
+  }
+
+  export const focus = (key: string) => {
+    const {table, summary} = getServiceMenu(key);
+
+    screen.append(table); //must append before setting data
+
+    const rendered = summary == null
+      ? []
+      : summary.render();
+
+    setData(key, rendered);
+
+    //allow control the table with the keyboard
+    table.focus();
+  }
+
+  export const setData = (key: string, data: string[][]) => {
+    const {table, summary} = getServiceMenu(key);
+    table.setData(
+      { headers: ['Endpoints', 'Pod name']
+      , data: data });
+
+    screen.render();
+  }
+
+  export const destroy = () => {
+    serviceMenus.forEach((table,) => table.destroy())
+  }
+}
+
+// --------------------------------------------------------------------------
+// Init main menu.
+// --------------------------------------------------------------------------
+
+mainMenu.focus();
 
 // --------------------------------------------------------------------------
 // Start server stream.
@@ -127,19 +222,23 @@ stream
       summary.setEndpoints(update.endpoints);
     }
 
-    const rows = [ServiceSummary.header];
+    // Main menu update.
+    {
+      const rows: string[][] = [];
+      const mainMenuServiceSummaryData = [...summaries]
+        .sort(([name1], [name2]) => name1.localeCompare(name2))
+        .map(([name]) => [name]);
 
-    [...summaries]
-      .sort(([name1], [name2]) => name1.localeCompare(name2))
-      .forEach(([_, summary]) => {
-        const sumRows = summary.render();
-        if (sumRows.length == 1) {
-          sumRows[0][1] = "[NONE]";
-          sumRows[0][2] = "[NONE]";
-        }
-        rows.push(...sumRows);
-      })
+      mainMenu.setData(mainMenuServiceSummaryData);
+    }
 
-    table.setRows(rows);
-    sc.render();
+    // Service menu update.
+    {
+      const summary = summaries.get(key);
+      if (summary != null) {
+        serviceMenu.setData(key, summary.render());
+      }
+    }
+
+    screen.render();
   })
