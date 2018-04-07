@@ -46,19 +46,22 @@ class ServiceSummary {
         const eps = (this._endpoints.get(podName) || [])
           .map(ep => ep.port)
           .join(",");
-        rows.push([`[${eps}]`, podName]);
+        rows.push([`[${eps}]`, "->", podName]);
       });
 
     [...danglingPods]
       .sort((name1, name2) => name1.localeCompare(name2))
       .forEach(podName => {
-        rows.push(["", podName]);
+        rows.push([`${chalk.bgRed("[NONE]")}`, "->", podName]);
       });
 
     [...danglingEndpoints]
       .sort((name1, name2) => name1.localeCompare(name2))
       .forEach(podName => {
-        rows.push([`${podName} (does not exist)`, ""]);
+        const eps = (this._endpoints.get(podName) || [])
+          .map(ep => ep.port)
+          .join(",");
+        rows.push([`[${eps}]`, "->", `${chalk.bgRed(podName)}`]);
       })
 
     return rows;
@@ -69,8 +72,9 @@ class ServiceSummary {
 // Screen implementation.
 // --------------------------------------------------------------------------
 
-var blessed = require('blessed')
-, contrib = require('blessed-contrib')
+import * as blessed from "blessed";
+import chalk from "chalk";
+var contrib = require('blessed-contrib')
 , screen = blessed.screen();
 
 screen.key(['escape', 'q', 'C-c'], function(/*ch: any, key: any*/) {
@@ -129,38 +133,39 @@ namespace mainMenu {
 // --------------------------------------------------------------------------
 
 namespace serviceMenu {
-  const serviceMenus = new Map<string, any>();
+  const serviceMenus = new Map<string, {grid: any, table: any}>();
+  const menuData = new Map<string, string[][]>();
 
-  export const getServiceMenu = (key: string) => {
-    let table = null;
-    if ((table = serviceMenus.get(key)) == null) {
-      table = contrib.table(
-        { keys: true
+  export const getOrCreateServiceMenu = (key: string) => {
+    if (!serviceMenus.has(key)) {
+      const grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
+      const table = grid.set(0, 0, 4, 7, contrib.table,
+      { keys: true
         , fg: 'white'
         , selectedFg: 'white'
         , selectedBg: 'blue'
-        , interactive: true
-        , width: 80
+        , interactive: false
+        , width: "100%"
         , height: '100%'
         , border: {type: "line", fg: "cyan"}
-        , columnSpacing: 3 //in chars
-        , columnWidth: [40, 40] /*in chars*/
+        , columnSpacing: 2 //in chars
+        , columnWidth: [10, 2, 22] /*in chars*/
 
+        , label: key
         , vi: true });
 
-      serviceMenus.set(key, table);
-
-      table.setLabel(key);
+      serviceMenus.set(key, {grid, table});
     }
 
+    const {grid, table} = <any>serviceMenus.get(key);
     let summary = summaries.get(key);
-    return {table, summary};
+    return {grid, table, summary};
   }
 
   export const focus = (key: string) => {
-    const {table, summary} = getServiceMenu(key);
+    const {grid, table, summary} = getOrCreateServiceMenu(key);
 
-    screen.append(table); //must append before setting data
+    // screen.append(grid); //must append before setting data
 
     const rendered = summary == null
       ? []
@@ -169,20 +174,27 @@ namespace serviceMenu {
     setData(key, rendered);
 
     //allow control the table with the keyboard
-    table.focus();
+    // grid.focus();
   }
 
   export const setData = (key: string, data: string[][]) => {
-    const {table, summary} = getServiceMenu(key);
-    table.setData(
-      { headers: ['Endpoints', 'Pod name']
+    menuData.set(key, data);
+
+    if (serviceMenus.has(key)) {
+      const {table} = getOrCreateServiceMenu(key);
+      table.setData(
+      { headers: ['Endpoints', '', 'Pod name']
       , data: data });
+    }
 
     screen.render();
   }
 
   export const destroy = () => {
-    serviceMenus.forEach((table,) => table.destroy())
+    serviceMenus.forEach(({/*grid,*/ table},) => {
+      // NOTE: `grid.destroy` is (apparently) not a function.
+      table.destroy();
+    });
   }
 }
 
