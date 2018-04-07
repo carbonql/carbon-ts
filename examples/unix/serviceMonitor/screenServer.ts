@@ -3,6 +3,7 @@ import chalk from "chalk";
 var contrib = require('blessed-contrib')
 
 import {WatchEvent, transform, query, k8s} from "../../../src";
+import * as ktail from "../ktail";
 import * as api from "./api";
 
 // --------------------------------------------------------------------------
@@ -14,7 +15,7 @@ class ServiceSummary {
   private _pods: Map<string, k8s.IoK8sApiCoreV1Pod> = new Map();
   private _endpoints: Map<string, k8s.IoK8sApiCoreV1EndpointPort[]> = new Map();
 
-  constructor(private readonly _service: k8s.IoK8sApiCoreV1Service) {}
+  constructor(public readonly service: k8s.IoK8sApiCoreV1Service) {}
 
   public setPods(pods: Map<string, k8s.IoK8sApiCoreV1Pod>) {
     this._pods = pods;
@@ -98,20 +99,20 @@ var screen = blessed.screen()
 
 var grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
 
-/**
- * Donut Options
-  self.options.radius = options.radius || 14; // how wide is it? over 5 is best
-  self.options.arcWidth = options.arcWidth || 4; //width of the donut
-  self.options.yPadding = options.yPadding || 2; //padding from the top
- */
-var donut = grid.set(8, 8, 4, 2, contrib.donut,
-  {
-  label: 'Percent Donut',
-  radius: 16,
-  arcWidth: 4,
-  yPadding: 2,
-  data: [{label: 'Storage', percent: 87}]
-})
+// /**
+//  * Donut Options
+//   self.options.radius = options.radius || 14; // how wide is it? over 5 is best
+//   self.options.arcWidth = options.arcWidth || 4; //width of the donut
+//   self.options.yPadding = options.yPadding || 2; //padding from the top
+//  */
+// var donut = grid.set(8, 8, 4, 2, contrib.donut,
+//   {
+//   label: 'Percent Donut',
+//   radius: 16,
+//   arcWidth: 4,
+//   yPadding: 2,
+//   data: [{label: 'Storage', percent: 87}]
+// })
 
 // var latencyLine = grid.set(8, 8, 4, 2, contrib.line,
 //   { style:
@@ -122,13 +123,13 @@ var donut = grid.set(8, 8, 4, 2, contrib.donut,
 //   , xPadding: 5
 //   , label: 'Network Latency (sec)'})
 
-var gauge = grid.set(8, 10, 2, 2, contrib.gauge, {label: 'Storage', percent: [80,20]})
+// var gauge = grid.set(8, 10, 2, 2, contrib.gauge, {label: 'Storage', percent: [80,20]})
 var gauge_two = grid.set(2, 9, 2, 3, contrib.gauge, {label: 'Deployment Progress', percent: 80})
 
-var sparkline = grid.set(10, 10, 2, 2, contrib.sparkline,
-  { label: 'Throughput (bits/sec)'
-  , tags: true
-  , style: { fg: 'blue', titleFg: 'white' }})
+// var sparkline = grid.set(10, 10, 2, 2, contrib.sparkline,
+//   { label: 'Throughput (bits/sec)'
+//   , tags: true
+//   , style: { fg: 'blue', titleFg: 'white' }})
 
 // var bar = grid.set(4, 6, 4, 3, contrib.bar,
 //   { label: 'Server Utilization (%)'
@@ -137,34 +138,49 @@ var sparkline = grid.set(10, 10, 2, 2, contrib.sparkline,
 //   , xOffset: 2
 //   , maxHeight: 9})
 
-var servicesTable =  grid.set(0, 0, 4, 3, contrib.table,
+var servicesTable =  grid.set(0, 0, 4, 6, contrib.table,
   { keys: true
   , fg: 'green'
   , label: 'Services'
   , columnSpacing: 1
-  , columnWidth: [24, 10]
+  , columnWidth: [30, 15, 18, 18]
   , vi: true });
 
-var endpointsTable =  grid.set(4, 0, 4, 6, contrib.table,
+var podsTable =  grid.set(4, 0, 4, 6, contrib.table,
   { keys: true
   , fg: 'white'
-  , label: 'Endpoints'
+  , label: 'Targeted Pods'
   , interactive: false
   , columnSpacing: 1
   , columnWidth: [10, 3, 25, 19, 80]
   , vi: true });
 
 const serviceTableHeader = ['Endpoints', '', 'Pod name', 'Pod status', 'Message'];
+
 // Populate endpoints and pods tables when user presses <return>.
+let currKtailSub: query.Subscription | null = null;
 servicesTable.rows.on('select', (item: any) => {
-  const name = (<string>item.getText()).trim();
-  activeKey = name;
+  const key = (<string>item.getText()).split(" ")[0].trim();
+  activeKey = key;
   const summary = summaries.get(activeKey);
   if (summary != null) {
-    endpointsTable.setData(
+    podsTable.setData(
     { headers: serviceTableHeader
     , data: summary.render() });
   }
+
+  const [ns, svcName] = key.split("/");
+  log.destroy();
+  if (currKtailSub != null) {
+    currKtailSub.unsubscribe();
+  }
+  log = makeLog();
+  currKtailSub = ktail
+    .ktail(ns, RegExp(svcName, "g"), true)
+    .subscribe(({name, logs}) => {
+      log.log(`${chalk.green(name)}:`);
+      logs.forEach(line => log.log(`${line}`))
+    });
 });
 
 
@@ -212,26 +228,29 @@ var transactionsLine = grid.set(4, 9, 4, 3, contrib.line,
           , showLegend: true
           , legend: {width: 10}})
 
-var map = grid.set(8, 6, 4, 2, contrib.map, {label: 'Servers Location'})
+// var map = grid.set(8, 6, 4, 2, contrib.map, {label: 'Servers Location'})
 
-var log = grid.set(8, 0, 4, 6, contrib.log,
-  { fg: "green"
-  , selectedFg: "green"
-  , label: 'Server Log'})
+const makeLog = () => {
+  return grid.set(8, 0, 4, 12, contrib.log,
+    { fg: "white"
+    , selectedFg: "green"
+    , label: 'Logs for targeted pods (streaming)'});
+}
 
+var log = makeLog();
 
 //dummy data
 var servers = ['US1', 'US2', 'EU1', 'AU1', 'AS1', 'JP1']
 var commands = ['grep', 'node', 'java', 'timer', '~/ls -l', 'netns', 'watchdog', 'gulp', 'tar -xvf', 'awk', 'npm install']
 
 
-//set dummy data on gauge
-var gauge_percent = 0
-setInterval(function() {
-  gauge.setData([gauge_percent, 100-gauge_percent]);
-  gauge_percent++;
-  if (gauge_percent>=100) gauge_percent = 0
-}, 200)
+// //set dummy data on gauge
+// var gauge_percent = 0
+// setInterval(function() {
+//   gauge.setData([gauge_percent, 100-gauge_percent]);
+//   gauge_percent++;
+//   if (gauge_percent>=100) gauge_percent = 0
+// }, 200)
 
 var gauge_percent_two = 0
 setInterval(function() {
@@ -254,48 +273,48 @@ setInterval(function() {
 
 servicesTable.focus()
 
-//set log dummy data
-setInterval(function() {
-   var rnd = Math.round(Math.random()*2)
-   if (rnd==0) log.log('starting process ' + commands[Math.round(Math.random()*(commands.length-1))])
-   else if (rnd==1) log.log('terminating server ' + servers[Math.round(Math.random()*(servers.length-1))])
-   else if (rnd==2) log.log('avg. wait time ' + Math.random().toFixed(2))
-   screen.render()
-}, 500)
+// //set log dummy data
+// setInterval(function() {
+//    var rnd = Math.round(Math.random()*2)
+//    if (rnd==0) log.log('starting process ' + commands[Math.round(Math.random()*(commands.length-1))])
+//    else if (rnd==1) log.log('terminating server ' + servers[Math.round(Math.random()*(servers.length-1))])
+//    else if (rnd==2) log.log('avg. wait time ' + Math.random().toFixed(2))
+//    screen.render()
+// }, 500)
 
 
-//set spark dummy data
-var spark1 = [1,2,5,2,1,5,1,2,5,2,1,5,4,4,5,4,1,5,1,2,5,2,1,5,1,2,5,2,1,5,1,2,5,2,1,5]
-var spark2 = [4,4,5,4,1,5,1,2,5,2,1,5,4,4,5,4,1,5,1,2,5,2,1,5,1,2,5,2,1,5,1,2,5,2,1,5]
+// //set spark dummy data
+// var spark1 = [1,2,5,2,1,5,1,2,5,2,1,5,4,4,5,4,1,5,1,2,5,2,1,5,1,2,5,2,1,5,1,2,5,2,1,5]
+// var spark2 = [4,4,5,4,1,5,1,2,5,2,1,5,4,4,5,4,1,5,1,2,5,2,1,5,1,2,5,2,1,5,1,2,5,2,1,5]
 
-refreshSpark()
-setInterval(refreshSpark, 1000)
+// refreshSpark()
+// setInterval(refreshSpark, 1000)
 
-function refreshSpark() {
-  spark1.shift()
-  spark1.push(Math.random()*5+1)
-  spark2.shift()
-  spark2.push(Math.random()*5+1)
-  sparkline.setData(['Server1', 'Server2'], [spark1, spark2])
-}
+// function refreshSpark() {
+//   spark1.shift()
+//   spark1.push(Math.random()*5+1)
+//   spark2.shift()
+//   spark2.push(Math.random()*5+1)
+//   sparkline.setData(['Server1', 'Server2'], [spark1, spark2])
+// }
 
 
 
-//set map dummy markers
-var marker = true
-setInterval(function() {
-   if (marker) {
-    map.addMarker({"lon" : "-79.0000", "lat" : "37.5000", color: 'yellow', char: 'X' })
-    map.addMarker({"lon" : "-122.6819", "lat" : "45.5200" })
-    map.addMarker({"lon" : "-6.2597", "lat" : "53.3478" })
-    map.addMarker({"lon" : "103.8000", "lat" : "1.3000" })
-   }
-   else {
-    map.clearMarkers()
-   }
-   marker =! marker
-   screen.render()
-}, 1000)
+// //set map dummy markers
+// var marker = true
+// setInterval(function() {
+//    if (marker) {
+//     map.addMarker({"lon" : "-79.0000", "lat" : "37.5000", color: 'yellow', char: 'X' })
+//     map.addMarker({"lon" : "-122.6819", "lat" : "45.5200" })
+//     map.addMarker({"lon" : "-6.2597", "lat" : "53.3478" })
+//     map.addMarker({"lon" : "103.8000", "lat" : "1.3000" })
+//    }
+//    else {
+//     map.clearMarkers()
+//    }
+//    marker =! marker
+//    screen.render()
+// }, 1000)
 
 //set line charts dummy data
 
@@ -352,22 +371,22 @@ setInterval(function(){
 
 var pct = 0.00;
 
-function updateDonut(){
-  if (pct > 0.99) pct = 0.00;
-  var color = "green";
-  if (pct >= 0.25) color = "cyan";
-  if (pct >= 0.5) color = "yellow";
-  if (pct >= 0.75) color = "red";
-  donut.setData([
-    {percent: parseFloat(<any>((pct+0.00) % 1)).toFixed(2), label: 'storage', 'color': color}
-  ]);
-  pct += 0.01;
-}
+// function updateDonut(){
+//   if (pct > 0.99) pct = 0.00;
+//   var color = "green";
+//   if (pct >= 0.25) color = "cyan";
+//   if (pct >= 0.5) color = "yellow";
+//   if (pct >= 0.75) color = "red";
+//   donut.setData([
+//     {percent: parseFloat(<any>((pct+0.00) % 1)).toFixed(2), label: 'storage', 'color': color}
+//   ]);
+//   pct += 0.01;
+// }
 
-setInterval(function() {
-   updateDonut();
-   screen.render()
-}, 500)
+// setInterval(function() {
+//    updateDonut();
+//    screen.render()
+// }, 500)
 
 function setLineData(mockData: any, line: any) {
   for (var i=0; i<mockData.length; i++) {
@@ -387,17 +406,17 @@ screen.key(['escape', 'q', 'C-c'], function() {
 
 // fixes https://github.com/yaronn/blessed-contrib/issues/10
 screen.on('resize', function() {
-  donut.emit('attach');
-  gauge.emit('attach');
+  // donut.emit('attach');
+  // gauge.emit('attach');
   gauge_two.emit('attach');
-  sparkline.emit('attach');
+  // sparkline.emit('attach');
   // bar.emit('attach');
   servicesTable.emit('attach');
-  endpointsTable.emit('attach');
+  podsTable.emit('attach');
   lcdLineOne.emit('attach');
   errorsLine.emit('attach');
   transactionsLine.emit('attach');
-  map.emit('attach');
+  // map.emit('attach');
   log.emit('attach');
 });
 
@@ -439,9 +458,20 @@ stream
       const rows: string[][] = [];
       const mainMenuServiceSummaryData = [...summaries]
         .sort(([name1], [name2]) => name1.localeCompare(name2))
-        .map(([name]) => [name]);
+        .map(([name, svcSumm]) => {
+          const externalIps =
+            (svcSumm.service && svcSumm.service.spec && svcSumm.service.spec.externalIPs)
+            ? svcSumm.service.spec.externalIPs
+            : [];
+          return [ name
+          ,  svcSumm.service.spec.type
+          , svcSumm.service.spec.clusterIP
+          , externalIps.length == 0 ? "<none>" : `[${externalIps.join(",")}]` ]
+        });
 
-      servicesTable.setData({headers: ['Service name', 'Status'], data: mainMenuServiceSummaryData})
+      servicesTable.setData(
+      { headers: ['Service name', 'Type', 'Cluster IP', 'External IP']
+      , data: mainMenuServiceSummaryData })
     }
 
     // Service menu update.
@@ -449,7 +479,7 @@ stream
       if (key == activeKey) {
         const summary = summaries.get(key);
         if (summary != null) {
-          endpointsTable.setData(
+          podsTable.setData(
           { headers: serviceTableHeader
           , data: summary.render() });
         }

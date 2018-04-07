@@ -298,7 +298,12 @@ export namespace core {
           ((pod && pod.status && pod.status.conditions) ? pod.status.conditions : [])
             .filter(cond => cond.type == "Ready");
         if (readyStatus.length == 0) {
-          return <k8s.IoK8sApiCoreV1PodCondition>{type: "Ready", status: "Unknown", reason: "Unknown"};
+          return <k8s.IoK8sApiCoreV1PodCondition>{
+            type: "Ready",
+            status: "False",
+            reason: "Unscheduled",
+            message: "Pod has not been scheduled",
+          };
         }
         return readyStatus[0];
       }
