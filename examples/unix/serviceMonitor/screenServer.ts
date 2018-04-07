@@ -1,3 +1,7 @@
+import * as blessed from "blessed";
+import chalk from "chalk";
+var contrib = require('blessed-contrib')
+
 import {WatchEvent, query, k8s} from "../../../src";
 import * as api from "./api";
 
@@ -72,12 +76,9 @@ class ServiceSummary {
 // Screen implementation.
 // --------------------------------------------------------------------------
 
-import * as blessed from "blessed";
-import chalk from "chalk";
-var contrib = require('blessed-contrib')
-, screen = blessed.screen();
+let screen = blessed.screen();
 
-screen.key(['escape', 'q', 'C-c'], function(/*ch: any, key: any*/) {
+screen.key(['escape', 'q', 'C-c'], function() {
   serviceMenu.destroy();
   mainMenu.destroy();
   screen.destroy();
@@ -104,7 +105,7 @@ namespace mainMenu {
 
     , vi: true });
 
-  table.rows.on('select', (item: any, /*index: any*/) => {
+  table.rows.on('select', (item: any) => {
     const name = (<string>item.getText()).trim();
     serviceMenu.focus(name);
     screen.render();
@@ -142,27 +143,27 @@ namespace serviceMenu {
       const grid = new contrib.grid({rows: 12, cols: 12, screen: screen})
       const table = grid.set(0, 0, 4, 7, contrib.table,
       { keys: true
-        , fg: 'white'
-        , selectedFg: 'white'
-        , selectedBg: 'blue'
-        , interactive: true
-        , width: "100%"
-        , height: '100%'
-        , border: {type: "line", fg: "cyan"}
-        , columnSpacing: 2 //in chars
-        , columnWidth: [10, 2, 22] /*in chars*/
+      , fg: 'white'
+      , selectedFg: 'white'
+      , selectedBg: 'blue'
+      , interactive: true
+      , width: "100%"
+      , height: '100%'
+      , border: {type: "line", fg: "cyan"}
+      , columnSpacing: 2 //in chars
+      , columnWidth: [10, 2, 22] /*in chars*/
 
-        , label: key
-        , vi: true });
+      , label: `Service: ${key}`
+      , vi: true });
+
+      table.key([','], function() {
+        mainMenu.focus();
+        table.destroy();
+        serviceMenus.delete(key);
+      });
 
       serviceMenus.set(key, {grid, table});
     }
-
-    screen.key([','], function(/*ch: any, key: any*/) {
-      mainMenu.focus();
-      table.destroy();
-      serviceMenus.delete(key);
-    });
 
     const {grid, table} = <any>serviceMenus.get(key);
     let summary = summaries.get(key);
