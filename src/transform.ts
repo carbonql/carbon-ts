@@ -293,6 +293,16 @@ export namespace core {
         return doTransform(p => util.v1.podSpec.transformContainers(t, filter)(p.spec));
       }
 
+      export const getReadyStatus = (pod: k8s.IoK8sApiCoreV1Pod): k8s.IoK8sApiCoreV1PodCondition => {
+        const readyStatus =
+          ((pod && pod.status && pod.status.conditions) ? pod.status.conditions : [])
+            .filter(cond => cond.type == "Ready");
+        if (readyStatus.length == 0) {
+          return <k8s.IoK8sApiCoreV1PodCondition>{type: "Ready", status: "Unknown", reason: "Unknown"};
+        }
+        return readyStatus[0];
+      }
+
       //
       // Verbs.
       //
