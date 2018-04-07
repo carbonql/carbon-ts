@@ -156,10 +156,11 @@ namespace serviceMenu {
       , label: `Service: ${key}`
       , vi: true });
 
-      table.key([','], function() {
+      screen.key([','], function() {
         mainMenu.focus();
         table.destroy();
         serviceMenus.delete(key);
+        screen.unkey(",", () => {});
       });
 
       serviceMenus.set(key, {grid, table});
