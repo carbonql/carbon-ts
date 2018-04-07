@@ -115,6 +115,7 @@ namespace mainMenu {
 
     //allow control the table with the keyboard
     table.focus();
+    screen.render();
   }
 
   export const setData = (data: string[][]) => {
@@ -144,7 +145,7 @@ namespace serviceMenu {
         , fg: 'white'
         , selectedFg: 'white'
         , selectedBg: 'blue'
-        , interactive: false
+        , interactive: true
         , width: "100%"
         , height: '100%'
         , border: {type: "line", fg: "cyan"}
@@ -157,6 +158,12 @@ namespace serviceMenu {
       serviceMenus.set(key, {grid, table});
     }
 
+    screen.key([','], function(/*ch: any, key: any*/) {
+      mainMenu.focus();
+      table.destroy();
+      serviceMenus.delete(key);
+    });
+
     const {grid, table} = <any>serviceMenus.get(key);
     let summary = summaries.get(key);
     return {grid, table, summary};
@@ -164,9 +171,6 @@ namespace serviceMenu {
 
   export const focus = (key: string) => {
     const {grid, table, summary} = getOrCreateServiceMenu(key);
-
-    // screen.append(grid); //must append before setting data
-
     const rendered = summary == null
       ? []
       : summary.render();
@@ -174,7 +178,9 @@ namespace serviceMenu {
     setData(key, rendered);
 
     //allow control the table with the keyboard
-    // grid.focus();
+    table.focus();
+
+    screen.render();
   }
 
   export const setData = (key: string, data: string[][]) => {
