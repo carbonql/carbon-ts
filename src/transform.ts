@@ -757,10 +757,12 @@ export namespace core {
               // expose the same ports, organized as `{port[], podAddress[]}`.
               // Flatten this to `{podAddress, port[]}[]`. This allows us to
               // aggregate by pod name.
-              .flatMap(({addresses, ports}) =>
-                query.Observable
-                  .of(...addresses)
-                  .flatMap(address => [{podName: address.targetRef.name, ports}]))
+              .flatMap(({addresses, ports}) => {
+                const addrs = addresses == null ? [] : addresses;
+                return query.Observable
+                  .of(...addrs)
+                  .flatMap(address => [{podName: address.targetRef.name, ports}]);
+              })
               // Group by pod name.
               .groupBy(({podName}) => podName)
               // Flatten. Each `addressGroup` will be an array `{podName,
