@@ -1,0 +1,21 @@
+{{#groups}}
+export namespace {{group}} {
+  {{#versions}}
+  export namespace {{version}} {
+    {{#kinds}}
+    {{{comment}}}
+    export interface {{kind}} {
+      {{#properties}}
+      {{{comment}}}
+      readonly {{name}}: {{type}}
+
+      {{/properties}}
+    }
+
+    {{/kinds}}
+  }
+
+  {{/versions}}
+
+}
+{{/groups}}
