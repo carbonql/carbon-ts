@@ -350,3 +350,14 @@ stream
 
     screen.render();
   })
+  .catch(e => {
+    if (currKtailSub != null) {
+      currKtailSub.unsubscribe();
+    }
+    screen.destroy();
+    console.log(e);
+
+    // Exit with code 1, `screen` still has some stuff running that we don't
+    // bother to clean up.
+    process.exit(1);
+  });

@@ -35,3 +35,7 @@ c.core.v1.Service
   // Evaluate container status for each pod.
   // Find DNS settings.
   .forEach(_ => {})
+  .catch(e => {
+    server.stream.error(e);
+    return query.Observable.empty();
+  });

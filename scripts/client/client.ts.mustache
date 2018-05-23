@@ -80,8 +80,14 @@ const watchListAsObservable = <T>(
     }
     if (obj['type'] && obj['object']) {
       watch.next(obj);
+    } else if (obj['kind'] === "Status" && obj['apiVersion'] === "v1") {
+      watch.error(obj['message']);
+      stream.destroy();
+      req.abort();
     } else {
       watch.error(`Unexpected object in watch list: ${JSON.stringify(obj)}`);
+      stream.destroy();
+      req.abort();
     }
   });
 
