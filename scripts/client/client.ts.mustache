@@ -81,7 +81,7 @@ const watchListAsObservable = <T>(
     if (obj['type'] && obj['object']) {
       watch.next(obj);
     } else {
-      watch.error(`Unexpected object in watch list: ${obj}`);
+      watch.error(`Unexpected object in watch list: ${JSON.stringify(obj)}`);
     }
   });
 
