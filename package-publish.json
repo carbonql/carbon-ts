@@ -1,11 +1,8 @@
 {
+  "name": "@carbonql/carbonql",
   "version": "0.1.0",
   "description": "",
   "scripts": {
-    "build-ts": "node_modules/.bin/tsc",
-    "build-ex": "./node_modules/.bin/babel examples -d build/examples",
-    "build": "npm run build-ts && npm run build-ex",
-    "test": "npm run build && node_modules/mocha/bin/_mocha build/test"
   },
   "author": "",
   "license": "MIT",

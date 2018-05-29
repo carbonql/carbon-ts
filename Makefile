@@ -1,12 +1,16 @@
-DOCKER ?= docker
+BUILDDIR := build
+PACKDIR  := ${BUILDDIR}/src
 
-container:
-	$(DOCKER) build -t carbonql/client-ts .
-
-install:
-	$(DOCKER) run -it ${CURDIR}:/src carbonql/client-ts npm install
+NPM ?= npm
 
 build: FORCE
-	$(DOCKER) run -it -v ${CURDIR}:/src carbonql/client-ts npm run build
+	$(NPM) install
+	$(NPM) run build
+	cp -r README.md LICENSE package-lock.json ${PACKDIR}
+	cp package-publish.json ${PACKDIR}/package.json
+	cd ${PACKDIR} && $(NPM) link
+
+publish: FORCE
+	cd ${PACKDIR} && $(NPM) publish --access=public
 
 FORCE: ;

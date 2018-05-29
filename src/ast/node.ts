@@ -5,7 +5,7 @@
 // of expressions, statements, block expressions, and primtive values.
 //
 
-type NodeType =
+export type NodeType =
     IntValueType
   | StringValueType
   | BoolValueType
@@ -19,18 +19,18 @@ type NodeType =
   | ApplyExpressionType
   | ConditionalExpressionType;
 
-type IntValueType                = "IntValue"
-type StringValueType             = "StringValue"
-type BoolValueType               = "BoolValue"
-type ObjectValueType             = "ObjectValue"
-type IdentifierType              = "Identifier"
-type IndexExpressionType         = "IndexExpression"
-type VariableDeclarationStmtType = "VariableDeclarationStmt"
-type ReturnStmtType              = "ReturnStmt"
-type BlockExpressionType         = "BlockExpression"
-type LambdaExpressionType        = "LambdaExpression"
-type ApplyExpressionType         = "ApplyExpression"
-type ConditionalExpressionType   = "ConditionalExpression"
+export type IntValueType                = "IntValue"
+export type StringValueType             = "StringValue"
+export type BoolValueType               = "BoolValue"
+export type ObjectValueType             = "ObjectValue"
+export type IdentifierType              = "Identifier"
+export type IndexExpressionType         = "IndexExpression"
+export type VariableDeclarationStmtType = "VariableDeclarationStmt"
+export type ReturnStmtType              = "ReturnStmt"
+export type BlockExpressionType         = "BlockExpression"
+export type LambdaExpressionType        = "LambdaExpression"
+export type ApplyExpressionType         = "ApplyExpression"
+export type ConditionalExpressionType   = "ConditionalExpression"
 
 export interface Node {
   readonly type: NodeType;
